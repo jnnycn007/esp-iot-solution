@@ -796,7 +796,6 @@ static void esp_ble_conn_set_default_adv_params(esp_ble_conn_session_t *conn_ses
     conn_session->adv_params_cfg.adv_event_properties = 0;
     conn_session->adv_params_cfg.ext_adv_cap = 0;
 #endif
-    conn_session->ext_adv_handle = conn_session->adv_params_cfg.adv_handle;
 }
 
 #if defined(CONFIG_BLE_CONN_MGR_ROLE_CENTRAL) || defined(CONFIG_BLE_CONN_MGR_ROLE_BOTH)
@@ -3328,6 +3327,7 @@ esp_err_t esp_ble_conn_init(esp_ble_conn_config_t *config)
 
     /* Set default advertising parameters (can be overridden via esp_ble_conn_adv_params_set) */
     esp_ble_conn_set_default_adv_params(conn_session);
+    conn_session->ext_adv_handle = conn_session->adv_params_cfg.adv_handle;
     conn_session->adv_params_set = false;
 
 #if defined(CONFIG_BLE_CONN_MGR_EXTENDED_ADV)
@@ -3750,12 +3750,24 @@ esp_err_t esp_ble_conn_adv_params_set(const esp_ble_conn_adv_params_t *params)
         }
 #endif
         s_conn_session->adv_params_cfg = *params;
-        s_conn_session->ext_adv_handle = params->adv_handle;
         s_conn_session->adv_params_set = true;
     } else {
         esp_ble_conn_set_default_adv_params(s_conn_session);
         s_conn_session->adv_params_set = false;
     }
+    return ESP_OK;
+}
+
+esp_err_t esp_ble_conn_adv_params_get(esp_ble_conn_adv_params_t *out_params)
+{
+    if (!s_conn_session) {
+        return ESP_ERR_INVALID_STATE;
+    }
+    if (!out_params) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    *out_params = s_conn_session->adv_params_cfg;
     return ESP_OK;
 }
 
@@ -4167,6 +4179,28 @@ esp_err_t esp_ble_conn_adv_stop(void)
     ESP_LOGW(TAG, "Failed to stop advertising; rc=%d", rc);
     return ESP_FAIL;
 #else
+    return ESP_ERR_INVALID_STATE;
+#endif
+}
+
+esp_err_t esp_ble_conn_adv_is_active(bool *out_active)
+{
+#if defined(CONFIG_BLE_CONN_MGR_ROLE_PERIPHERAL) || defined(CONFIG_BLE_CONN_MGR_ROLE_BOTH)
+    if (!s_conn_session) {
+        return ESP_ERR_INVALID_STATE;
+    }
+    if (!out_active) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+#if BLE_CONN_MGR_NIMBLE_USE_EXT_GAP
+    *out_active = ble_gap_ext_adv_active(s_conn_session->ext_adv_handle) != 0;
+#else
+    *out_active = ble_gap_adv_active() != 0;
+#endif
+    return ESP_OK;
+#else
+    (void)out_active;
     return ESP_ERR_INVALID_STATE;
 #endif
 }
