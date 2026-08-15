@@ -1948,6 +1948,15 @@ static esp_err_t esp_ble_conn_ext_advertise(esp_ble_conn_session_t *conn_session
     /* configure instance */
     rc = ble_gap_ext_adv_configure(conn_session->ext_adv_handle, &adv_params, NULL,
                                    esp_ble_conn_gap_event, conn_session);
+    if (rc == BLE_HS_EBUSY) {
+        /* The instance is still enabled, which ble_gap_ext_adv_configure()
+           refuses to reprogram. Stop it and take one more run: returning here
+           leaves the instance advertising with the previous parameters, which
+           is harder to notice than a failure to advertise at all. */
+        ble_gap_ext_adv_stop(conn_session->ext_adv_handle);
+        rc = ble_gap_ext_adv_configure(conn_session->ext_adv_handle, &adv_params, NULL,
+                                       esp_ble_conn_gap_event, conn_session);
+    }
     if (rc) {
         ESP_LOGE(TAG, "Configure extended advertising instance error; rc=%d", rc);
         return ESP_FAIL;
@@ -2504,6 +2513,14 @@ static int esp_ble_conn_gap_event(struct ble_gap_event *event, void *arg)
         case BLE_GAP_EVENT_ADV_COMPLETE:
 #if BLE_CONN_MGR_NIMBLE_USE_EXT_GAP
             if (event->adv_complete.instance != conn_session->ext_adv_handle) {
+                break;
+            }
+            /* reason 0 means the advertising set terminated because a connection
+               was established. Restarting connectable advertising with the slot
+               taken fails with BLE_HS_ENOMEM and leaves the previously
+               configured parameters in force; BLE_GAP_EVENT_DISCONNECT is what
+               resumes advertising. */
+            if (event->adv_complete.reason == 0) {
                 break;
             }
 #endif
