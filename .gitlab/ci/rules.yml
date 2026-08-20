@@ -276,6 +276,10 @@
   - "components/protocomm_ext/**/*"
   - "tools/cmake_utilities/package_manager.cmake"
 
+.patterns-components_network_provisioner: &patterns-components_network_provisioner
+  - "components/network_provisioner/**/*"
+  - "tools/cmake_utilities/package_manager.cmake"
+
 .patterns-components_quickjs_ng: &patterns-components_quickjs_ng
   - "components/quickjs-ng/**/*"
   - "tools/cmake_utilities/package_manager.cmake"
@@ -539,6 +543,7 @@
   - "components/protocomm_ext/include/transports/protocomm_ext_console.h"
   - "components/protocomm_ext/include/transports/protocomm_ext_http.h"
   - "components/protocomm_ext/include/transports/protocomm_ext_nimble.h"
+  - "components/network_provisioner/include/network_provisioner.h"
   - "components/sensors/ntc_driver/include/ntc_driver.h"
   - "components/sensors/power_measure/include/power_measure.h"
   - "components/sensors/power_monitor/ina236/include/ina236.h"
@@ -935,6 +940,9 @@
 
 .patterns-example_xiaozhi_chat: &patterns-example_xiaozhi_chat
   - "examples/ai/xiaozhi_chat/**/*"
+
+.patterns-example_network_provisioner: &patterns-example_network_provisioner
+  - "examples/network_provisioner/**/*"
 
 .patterns-example_weaver_imu_gesture: &patterns-example_weaver_imu_gesture
   - "examples/weaver/imu_gesture/**/*"
@@ -3688,6 +3696,19 @@
     - <<: *if-dev-push
       changes: *patterns-components_protocomm_ext
 
+.rules:build:components_network_provisioner_test_apps:
+  rules:
+    - <<: *if-protected
+    - <<: *if-label-build
+    - <<: *if-label-target_test
+    - <<: *if-trigger-job
+    - <<: *if-dev-push
+      changes: *patterns-build_system
+    - <<: *if-dev-push
+      changes: *patterns-components_network_provisioner
+    - <<: *if-dev-push
+      changes: *patterns-components_protocomm_ext
+
 .rules:build:tools_cmake_utilities_test_apps:
   rules:
     - <<: *if-protected
@@ -3724,6 +3745,21 @@
       changes: *patterns-build_system
     - <<: *if-dev-push
       changes: *patterns-components_ramfs
+
+.rules:build:example_network_provisioner:
+  rules:
+    - <<: *if-protected
+    - <<: *if-label-build
+    - <<: *if-label-target_test
+    - <<: *if-trigger-job
+    - <<: *if-dev-push
+      changes: *patterns-build_system
+    - <<: *if-dev-push
+      changes: *patterns-components_network_provisioner
+    - <<: *if-dev-push
+      changes: *patterns-components_protocomm_ext
+    - <<: *if-dev-push
+      changes: *patterns-example_network_provisioner
 
 .rules:build:example_xiaozhi_chat:
   rules:

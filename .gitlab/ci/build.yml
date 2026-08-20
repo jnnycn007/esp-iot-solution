@@ -2108,6 +2108,22 @@ build_components_protocomm_ext_test_apps:
   variables:
     EXAMPLE_DIR: components/protocomm_ext/test_apps
 
+build_components_network_provisioner_test_apps:
+  extends:
+    - .build_examples_template
+    - .rules:build:components_network_provisioner_test_apps
+    - .build_idf_active_release_version_with_pre_release
+  variables:
+    EXAMPLE_DIR: components/network_provisioner/test_apps
+
+build_example_network_provisioner:
+  extends:
+    - .build_examples_template
+    - .rules:build:example_network_provisioner
+    - .build_idf_active_release_version_with_pre_release
+  variables:
+    EXAMPLE_DIR: examples/network_provisioner
+
 build_components_esp_xiaozhi_test_apps:
   extends:
     - .build_examples_template

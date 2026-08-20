@@ -45,3 +45,9 @@ dependencies:
 
 - 测试：`components/network_provisioner/test_apps`
 - 示例：`examples/network_provisioner`（同一工程可选 SoftAP / BLE / Thread）
+
+**支持目标：** ESP32 / ESP32-S3 / ESP32-C2 / ESP32-C3 / ESP32-C5 / ESP32-C6 / ESP32-C61 / ESP32-H2
+
+## 许可证
+
+Apache-2.0，见 `license.txt`。

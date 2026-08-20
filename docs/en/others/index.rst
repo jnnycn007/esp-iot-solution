@@ -12,3 +12,4 @@ Other Resources
     Zero Detection <zero_detection>
     ADC Two-Point Calibration Scheme <adc_tp_calibration>
     Protocomm Extension <protocomm_ext>
+    Network Provisioner <network_provisioner>

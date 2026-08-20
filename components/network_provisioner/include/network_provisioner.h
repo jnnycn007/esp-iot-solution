@@ -41,15 +41,21 @@ extern "C" {
  */
 #define NETWORK_PROVISIONER_MAX_SCAN_RESULTS  64
 
+/**
+ * @brief Opaque network provisioner instance returned by network_provisioner_create()
+ */
 typedef struct network_provisioner network_provisioner_t;
 
+/**
+ * @brief Capabilities parsed from the peer proto-ver JSON
+ */
 typedef struct {
-    bool wifi_prov;
-    bool wifi_scan;
-    bool thread_prov;
-    bool thread_scan;
-    bool no_sec;
-    bool no_pop;
+    bool wifi_prov;     /**< Peer supports Wi-Fi provisioning */
+    bool wifi_scan;     /**< Peer supports Wi-Fi scan */
+    bool thread_prov;   /**< Peer supports Thread provisioning */
+    bool thread_scan;   /**< Peer supports Thread scan */
+    bool no_sec;        /**< Peer advertises no-security (Sec0) */
+    bool no_pop;        /**< Peer does not require Proof-of-Possession */
     /**
      * Security scheme from proto-ver JSON (`prov.sec_ver`, 0 / 1 / 2).
      * Required when a `prov` object is present; bare version strings fall back to 1.
@@ -58,82 +64,100 @@ typedef struct {
 } network_provisioner_capabilities_t;
 
 typedef enum {
-    NETWORK_PROVISIONER_WIFI_STATE_CONNECTED = 0,
-    NETWORK_PROVISIONER_WIFI_STATE_CONNECTING,
-    NETWORK_PROVISIONER_WIFI_STATE_DISCONNECTED,
-    NETWORK_PROVISIONER_WIFI_STATE_CONNECTION_FAILED,
+    NETWORK_PROVISIONER_WIFI_STATE_CONNECTED = 0,       /*!< STA connected */
+    NETWORK_PROVISIONER_WIFI_STATE_CONNECTING,          /*!< STA connecting */
+    NETWORK_PROVISIONER_WIFI_STATE_DISCONNECTED,        /*!< STA disconnected */
+    NETWORK_PROVISIONER_WIFI_STATE_CONNECTION_FAILED,   /*!< STA connection failed */
 } network_provisioner_wifi_state_t;
 
 typedef enum {
-    NETWORK_PROVISIONER_WIFI_FAIL_AUTH_ERROR = 0,
-    NETWORK_PROVISIONER_WIFI_FAIL_NETWORK_NOT_FOUND,
-    NETWORK_PROVISIONER_WIFI_FAIL_UNKNOWN = -1,
+    NETWORK_PROVISIONER_WIFI_FAIL_AUTH_ERROR = 0,       /*!< Authentication failed */
+    NETWORK_PROVISIONER_WIFI_FAIL_NETWORK_NOT_FOUND,    /*!< AP not found */
+    NETWORK_PROVISIONER_WIFI_FAIL_UNKNOWN = -1,         /*!< Unspecified failure */
 } network_provisioner_wifi_fail_reason_t;
 
 typedef enum {
-    NETWORK_PROVISIONER_THREAD_STATE_ATTACHED = 0,
-    NETWORK_PROVISIONER_THREAD_STATE_ATTACHING,
-    NETWORK_PROVISIONER_THREAD_STATE_DETACHED,
-    NETWORK_PROVISIONER_THREAD_STATE_ATTACHING_FAILED,
+    NETWORK_PROVISIONER_THREAD_STATE_ATTACHED = 0,          /*!< Attached to Thread network */
+    NETWORK_PROVISIONER_THREAD_STATE_ATTACHING,             /*!< Attaching */
+    NETWORK_PROVISIONER_THREAD_STATE_DETACHED,              /*!< Detached */
+    NETWORK_PROVISIONER_THREAD_STATE_ATTACHING_FAILED,      /*!< Attach failed */
 } network_provisioner_thread_state_t;
 
 typedef enum {
-    NETWORK_PROVISIONER_THREAD_FAIL_DATASET_INVALID = 0,
-    NETWORK_PROVISIONER_THREAD_FAIL_NETWORK_NOT_FOUND,
-    NETWORK_PROVISIONER_THREAD_FAIL_UNKNOWN = -1,
+    NETWORK_PROVISIONER_THREAD_FAIL_DATASET_INVALID = 0,    /*!< Dataset invalid */
+    NETWORK_PROVISIONER_THREAD_FAIL_NETWORK_NOT_FOUND,      /*!< Network not found */
+    NETWORK_PROVISIONER_THREAD_FAIL_UNKNOWN = -1,           /*!< Unspecified failure */
 } network_provisioner_thread_fail_reason_t;
 
+/**
+ * @brief Wi-Fi STA status reported by the peer
+ */
 typedef struct {
-    network_provisioner_wifi_state_t state;
-    network_provisioner_wifi_fail_reason_t fail_reason;
-    char ip4_addr[16];
-    char ssid[33];
-    int32_t channel;
+    network_provisioner_wifi_state_t state;             /**< Connection state */
+    network_provisioner_wifi_fail_reason_t fail_reason; /**< Failure reason when disconnected/failed */
+    char ip4_addr[16];                                  /**< IPv4 address string, or empty */
+    char ssid[33];                                      /**< Connected SSID */
+    int32_t channel;                                    /**< Channel, or 0 if unknown */
 } network_provisioner_wifi_status_t;
 
+/**
+ * @brief Thread network status reported by the peer
+ */
 typedef struct {
-    network_provisioner_thread_state_t state;
-    network_provisioner_thread_fail_reason_t fail_reason;
-    uint32_t pan_id;
-    uint32_t channel;
-    char name[33];
+    network_provisioner_thread_state_t state;               /**< Attach state */
+    network_provisioner_thread_fail_reason_t fail_reason;   /**< Failure reason when attach failed */
+    uint32_t pan_id;                                        /**< PAN ID */
+    uint32_t channel;                                       /**< Channel */
+    char name[33];                                          /**< Network name */
 } network_provisioner_thread_status_t;
 
+/**
+ * @brief One Wi-Fi AP entry from a peer scan
+ */
 typedef struct {
-    uint8_t ssid[33];
-    uint8_t ssid_len;
-    uint8_t bssid[6];
-    uint32_t channel;
-    int32_t rssi;
-    int auth_mode;
+    uint8_t ssid[33];       /**< SSID bytes */
+    uint8_t ssid_len;       /**< SSID length */
+    uint8_t bssid[6];       /**< BSSID */
+    uint32_t channel;       /**< Channel */
+    int32_t rssi;           /**< RSSI in dBm */
+    int auth_mode;          /**< Wi-Fi auth mode (wifi_auth_mode_t) */
 } network_provisioner_wifi_ap_t;
 
+/**
+ * @brief One Thread network entry from a peer scan
+ */
 typedef struct {
-    uint32_t pan_id;
-    uint32_t channel;
-    int32_t rssi;
-    uint32_t lqi;
-    char network_name[33];
-    uint8_t ext_pan_id[8];
-    uint8_t ext_addr[8];
+    uint32_t pan_id;            /**< PAN ID */
+    uint32_t channel;           /**< Channel */
+    int32_t rssi;               /**< RSSI in dBm */
+    uint32_t lqi;               /**< Link quality indicator */
+    char network_name[33];      /**< Network name */
+    uint8_t ext_pan_id[8];      /**< Extended PAN ID */
+    uint8_t ext_addr[8];        /**< Extended address */
 } network_provisioner_thread_network_t;
 
+/**
+ * @brief Wi-Fi credentials for network_provisioner_provision_wifi()
+ */
 typedef struct {
-    const uint8_t *ssid;
-    size_t ssid_len;
-    const uint8_t *passphrase;
-    size_t passphrase_len;
-    const uint8_t *bssid;   /**< optional, 6 bytes or NULL */
-    int32_t channel;        /**< 0 = any */
-    uint32_t poll_timeout_ms;
-    uint32_t poll_interval_ms;
+    const uint8_t *ssid;            /**< SSID bytes */
+    size_t ssid_len;                /**< SSID length */
+    const uint8_t *passphrase;      /**< Passphrase bytes; may be NULL for open AP */
+    size_t passphrase_len;          /**< Passphrase length */
+    const uint8_t *bssid;           /**< Optional BSSID, 6 bytes or NULL */
+    int32_t channel;                /**< 0 = any channel */
+    uint32_t poll_timeout_ms;       /**< Status poll timeout; 0 uses the default */
+    uint32_t poll_interval_ms;      /**< Status poll interval; 0 uses the default */
 } network_provisioner_wifi_creds_t;
 
+/**
+ * @brief Thread credentials for network_provisioner_provision_thread()
+ */
 typedef struct {
-    const uint8_t *dataset;
-    size_t dataset_len;
-    uint32_t poll_timeout_ms;
-    uint32_t poll_interval_ms;
+    const uint8_t *dataset;         /**< Active Operational Dataset bytes */
+    size_t dataset_len;             /**< Dataset length */
+    uint32_t poll_timeout_ms;       /**< Status poll timeout; 0 uses the default */
+    uint32_t poll_interval_ms;      /**< Status poll interval; 0 uses the default */
 } network_provisioner_thread_creds_t;
 
 /**
@@ -151,6 +175,11 @@ typedef struct {
  */
 network_provisioner_t *network_provisioner_create(protocomm_ext_t *pc);
 
+/**
+ * @brief Free a network_provisioner instance
+ *
+ * Does not delete the wrapped protocomm_ext instance.
+ */
 void network_provisioner_delete(network_provisioner_t *np);
 
 /**
@@ -183,50 +212,72 @@ esp_err_t network_provisioner_fetch_capabilities(network_provisioner_t *np,
  */
 esp_err_t network_provisioner_establish_security(network_provisioner_t *np);
 
+/**
+ * @brief Close the transport session
+ */
 esp_err_t network_provisioner_stop_session(network_provisioner_t *np);
 
+/**
+ * @brief Copy capabilities stored by fetch_capabilities()
+ */
 esp_err_t network_provisioner_get_capabilities(network_provisioner_t *np,
                                                network_provisioner_capabilities_t *caps);
 
 /* ---- low-level config ---- */
+/** @brief Send Wi-Fi SetConfig on `prov-config` */
 esp_err_t network_provisioner_wifi_set_config(network_provisioner_t *np,
                                               const uint8_t *ssid, size_t ssid_len,
                                               const uint8_t *passphrase, size_t passphrase_len,
                                               const uint8_t *bssid, int32_t channel);
+/** @brief Send Wi-Fi ApplyConfig on `prov-config` */
 esp_err_t network_provisioner_wifi_apply_config(network_provisioner_t *np);
+/** @brief Query Wi-Fi STA status from the peer */
 esp_err_t network_provisioner_wifi_get_status(network_provisioner_t *np,
                                               network_provisioner_wifi_status_t *status);
 
+/** @brief Send Thread SetConfig (Active Operational Dataset) */
 esp_err_t network_provisioner_thread_set_config(network_provisioner_t *np,
                                                 const uint8_t *dataset, size_t dataset_len);
+/** @brief Send Thread ApplyConfig */
 esp_err_t network_provisioner_thread_apply_config(network_provisioner_t *np);
+/** @brief Query Thread attach status from the peer */
 esp_err_t network_provisioner_thread_get_status(network_provisioner_t *np,
                                                 network_provisioner_thread_status_t *status);
 
 /* ---- scan ---- */
+/** @brief Start a Wi-Fi scan on the peer */
 esp_err_t network_provisioner_wifi_scan_start(network_provisioner_t *np, bool blocking,
                                               bool passive, uint32_t group_channels,
                                               uint32_t period_ms);
+/** @brief Query whether the peer Wi-Fi scan has finished */
 esp_err_t network_provisioner_wifi_scan_status(network_provisioner_t *np,
                                                bool *finished, uint32_t *result_count);
+/** @brief Fetch Wi-Fi scan results from the peer */
 esp_err_t network_provisioner_wifi_scan_result(network_provisioner_t *np,
                                                uint32_t start_index, uint32_t count,
                                                network_provisioner_wifi_ap_t *out,
                                                uint32_t *out_count);
 
+/** @brief Start a Thread scan on the peer */
 esp_err_t network_provisioner_thread_scan_start(network_provisioner_t *np, bool blocking,
                                                 uint32_t channel_mask);
+/** @brief Query whether the peer Thread scan has finished */
 esp_err_t network_provisioner_thread_scan_status(network_provisioner_t *np,
                                                  bool *finished, uint32_t *result_count);
+/** @brief Fetch Thread scan results from the peer */
 esp_err_t network_provisioner_thread_scan_result(network_provisioner_t *np,
                                                  uint32_t start_index, uint32_t count,
                                                  network_provisioner_thread_network_t *out,
                                                  uint32_t *out_count);
 
 /* ---- ctrl ---- */
+/** @brief Reset Wi-Fi provisioning state on the peer */
 esp_err_t network_provisioner_wifi_reset(network_provisioner_t *np);
+/** @brief Re-enable Wi-Fi provisioning on the peer */
 esp_err_t network_provisioner_wifi_reprov(network_provisioner_t *np);
+/** @brief Reset Thread provisioning state on the peer */
 esp_err_t network_provisioner_thread_reset(network_provisioner_t *np);
+/** @brief Re-enable Thread provisioning on the peer */
 esp_err_t network_provisioner_thread_reprov(network_provisioner_t *np);
 
 /* ---- high-level ---- */
@@ -237,10 +288,16 @@ esp_err_t network_provisioner_provision_wifi(network_provisioner_t *np,
                                              const network_provisioner_wifi_creds_t *creds,
                                              network_provisioner_wifi_status_t *out_status);
 
+/**
+ * @brief Set + Apply Thread dataset and poll until attached or fail/timeout
+ */
 esp_err_t network_provisioner_provision_thread(network_provisioner_t *np,
                                                const network_provisioner_thread_creds_t *creds,
                                                network_provisioner_thread_status_t *out_status);
 
+/**
+ * @brief Return the wrapped protocomm_ext instance (caller still owns it)
+ */
 protocomm_ext_t *network_provisioner_get_protocomm(network_provisioner_t *np);
 
 #ifdef __cplusplus
