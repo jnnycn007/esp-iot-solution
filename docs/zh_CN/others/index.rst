@@ -11,3 +11,4 @@
     ADC 扩展量程方案<adc_range>
     过零检测 <zero_detection>
     ADC 两点校准方案 <adc_tp_calibration>
+    Protocomm 扩展方案 <protocomm_ext>

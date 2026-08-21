@@ -2100,6 +2100,14 @@ build_components_esp_weaver_test_apps:
   variables:
     EXAMPLE_DIR: components/esp_weaver/test_apps
 
+build_components_protocomm_ext_test_apps:
+  extends:
+    - .build_examples_template
+    - .rules:build:components_protocomm_ext_test_apps
+    - .build_idf_active_release_version_with_pre_release
+  variables:
+    EXAMPLE_DIR: components/protocomm_ext/test_apps
+
 build_components_esp_xiaozhi_test_apps:
   extends:
     - .build_examples_template

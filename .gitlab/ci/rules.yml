@@ -272,6 +272,10 @@
   - "components/openai/**/*"
   - "tools/cmake_utilities/package_manager.cmake"
 
+.patterns-components_protocomm_ext: &patterns-components_protocomm_ext
+  - "components/protocomm_ext/**/*"
+  - "tools/cmake_utilities/package_manager.cmake"
+
 .patterns-components_quickjs_ng: &patterns-components_quickjs_ng
   - "components/quickjs-ng/**/*"
   - "tools/cmake_utilities/package_manager.cmake"
@@ -530,6 +534,11 @@
   - "components/openai/include/OpenAI.h"
 
 .patterns-docs_inc_2: &patterns-docs_inc_2
+  - "components/protocomm_ext/include/common/protocomm_ext.h"
+  - "components/protocomm_ext/include/security/protocomm_ext_security.h"
+  - "components/protocomm_ext/include/transports/protocomm_ext_console.h"
+  - "components/protocomm_ext/include/transports/protocomm_ext_http.h"
+  - "components/protocomm_ext/include/transports/protocomm_ext_nimble.h"
   - "components/sensors/ntc_driver/include/ntc_driver.h"
   - "components/sensors/power_measure/include/power_measure.h"
   - "components/sensors/power_monitor/ina236/include/ina236.h"
@@ -3667,6 +3676,17 @@
       changes: *patterns-build_system
     - <<: *if-dev-push
       changes: *patterns-components_esp_weaver
+
+.rules:build:components_protocomm_ext_test_apps:
+  rules:
+    - <<: *if-protected
+    - <<: *if-label-build
+    - <<: *if-label-target_test
+    - <<: *if-trigger-job
+    - <<: *if-dev-push
+      changes: *patterns-build_system
+    - <<: *if-dev-push
+      changes: *patterns-components_protocomm_ext
 
 .rules:build:tools_cmake_utilities_test_apps:
   rules:
