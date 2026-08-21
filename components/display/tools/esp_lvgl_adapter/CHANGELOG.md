@@ -1,5 +1,10 @@
 # ChangeLog
 
+## v0.7.0 (2026-08-14)
+
+* Add a high-performance TE pipeline to improve rendering and display transfer efficiency while retaining TE synchronization.
+* Fix TE transfer error handling and ISR logging.
+
 ## v0.6.4 (2026-08-12)
 
 * Fix the required framebuffer count for 180° rotation in `DOUBLE_FULL` and `DOUBLE_DIRECT` modes.

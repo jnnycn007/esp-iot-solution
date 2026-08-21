@@ -31,8 +31,15 @@
 
 #define ESP_LV_ADAPTER_BRIDGE_BLOCK_SIZE_SMALL_DEFAULT  (32)
 #define ESP_LV_ADAPTER_BRIDGE_BLOCK_SIZE_LARGE_DEFAULT  (256)
+#define ESP_LV_ADAPTER_TE_BOUNCE_BUFFER_COUNT           (2U)
 
 #if SOC_DMA2D_SUPPORTED
+typedef enum {
+    DISPLAY_BRIDGE_DMA2D_COPY_UNCHECKED = 0,
+    DISPLAY_BRIDGE_DMA2D_COPY_ENABLED,
+    DISPLAY_BRIDGE_DMA2D_COPY_DISABLED,
+} display_bridge_dma2d_copy_state_t;
+
 #ifdef ESP_ASYNC_COLOR_CONVERT_AVAILABLE
 #include "esp_async_color_convert.h"
 #else
@@ -40,8 +47,23 @@
 #endif
 #endif
 
+typedef struct {
+    uint8_t *buffers[ESP_LV_ADAPTER_TE_BOUNCE_BUFFER_COUNT];
+    uint8_t count;
+    size_t capacity;
+#if SOC_DMA2D_SUPPORTED
+    display_bridge_dma2d_copy_state_t dma2d_copy_state;
+#endif
+} display_bridge_te_bounce_t;
+
 /* Forward declaration */
 typedef struct esp_lv_adapter_display_bridge esp_lv_adapter_display_bridge_t;
+
+void display_bridge_te_bounce_alloc(display_bridge_te_bounce_t *bounce,
+                                    size_t requested_rows,
+                                    size_t row_bytes,
+                                    size_t alignment);
+void display_bridge_te_bounce_free(display_bridge_te_bounce_t *bounce);
 
 /*********************
  *      TYPEDEFS
@@ -484,6 +506,15 @@ bool display_bridge_dma2d_done_callback(esp_async_fbcpy_handle_t mcp,
  * @return esp_err_t ESP_OK on success
  */
 esp_err_t display_bridge_dma2d_copy_sync(void *trans_desc, uint32_t timeout_ms);
+
+esp_err_t display_bridge_copy_to_dma_buffer(const void *src,
+                                            void *dst,
+                                            size_t width,
+                                            size_t height,
+                                            uint8_t color_bytes,
+                                            size_t cache_line_size,
+                                            display_bridge_dma2d_copy_state_t *dma2d_state);
+
 #endif /* SOC_DMA2D_SUPPORTED */
 
 /**

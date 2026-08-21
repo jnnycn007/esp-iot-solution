@@ -35,6 +35,53 @@
 
 static const char *TAG = "esp_lvgl:bridge";
 
+void display_bridge_te_bounce_free(display_bridge_te_bounce_t *bounce)
+{
+    if (!bounce) {
+        return;
+    }
+    for (size_t i = 0; i < ESP_LV_ADAPTER_TE_BOUNCE_BUFFER_COUNT; i++) {
+        free(bounce->buffers[i]);
+        bounce->buffers[i] = NULL;
+    }
+    bounce->count = 0;
+    bounce->capacity = 0;
+#if SOC_DMA2D_SUPPORTED
+    bounce->dma2d_copy_state = DISPLAY_BRIDGE_DMA2D_COPY_UNCHECKED;
+#endif
+}
+
+void display_bridge_te_bounce_alloc(display_bridge_te_bounce_t *bounce,
+                                    size_t requested_rows,
+                                    size_t row_bytes,
+                                    size_t alignment)
+{
+    if (!bounce || !requested_rows || !row_bytes || !alignment) {
+        return;
+    }
+
+    for (size_t rows = requested_rows; rows; rows /= 2U) {
+        size_t bytes = row_bytes * rows;
+        uint32_t caps = MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA | MALLOC_CAP_8BIT;
+        uint8_t count = 0;
+        for (; count < ESP_LV_ADAPTER_TE_BOUNCE_BUFFER_COUNT; count++) {
+            bounce->buffers[count] = heap_caps_aligned_alloc(alignment, bytes, caps);
+            if (!bounce->buffers[count]) {
+                break;
+            }
+        }
+        if (count == ESP_LV_ADAPTER_TE_BOUNCE_BUFFER_COUNT) {
+            bounce->count = count;
+            bounce->capacity = bytes;
+            ESP_LOGI(TAG, "Async TE bounce enabled: rows=%zu, count=%u, bytes=%zu each",
+                     rows, count, bytes);
+            return;
+        }
+        display_bridge_te_bounce_free(bounce);
+    }
+    ESP_LOGW(TAG, "Async TE bounce allocation failed; using LCD driver fallback");
+}
+
 /**********************
  *  FLASH ENC DMA ALIGN
  **********************/
@@ -241,6 +288,23 @@ void display_dirty_region_capture(esp_lv_adapter_display_dirty_region_t *dst,
  *   ROTATION & COPY OPERATIONS
  **********************/
 
+static inline void IRAM_ATTR display_copy_pixel(const uint8_t *src, uint8_t *dst, uint8_t color_bytes)
+{
+    if (color_bytes == 1) {
+        *dst = *src;
+    } else if (color_bytes == 2) {
+        *(uint16_t *)dst = *(const uint16_t *)src;
+    } else if (color_bytes == 3) {
+        dst[0] = src[0];
+        dst[1] = src[1];
+        dst[2] = src[2];
+    } else if (color_bytes == 4) {
+        memcpy(dst, src, 4);
+    } else {
+        memcpy(dst, src, color_bytes);
+    }
+}
+
 /**
  * @brief Rotate and copy a region with stride support (IRAM optimized)
  *
@@ -317,8 +381,10 @@ void IRAM_ATTR display_rotate_copy_region(const void *src,
     }
 
     /* Select block size based on rotation for optimal cache usage */
-    int block_w = (rotation == ESP_LV_ADAPTER_ROTATE_90 || rotation == ESP_LV_ADAPTER_ROTATE_270) ? block_size_small : block_size_large;
-    int block_h = (rotation == ESP_LV_ADAPTER_ROTATE_90 || rotation == ESP_LV_ADAPTER_ROTATE_270) ? block_size_large : block_size_small;
+    int block_w = block_size_small;
+    int block_h = block_size_large;
+    size_t src_stride_bytes = (size_t)src_stride_px * color_bytes;
+    size_t dst_stride_bytes = (size_t)phys_w * color_bytes;
 
     /* Process in blocks for better cache locality */
     for (int i = 0; i < rect_h; i += block_h) {
@@ -327,32 +393,23 @@ void IRAM_ATTR display_rotate_copy_region(const void *src,
         for (int j = 0; j < rect_w; j += block_w) {
             int max_width = (j + block_w > rect_w) ? rect_w : j + block_w;
 
-            /* Copy pixels within current block - fully inlined for performance */
+            /* Rotation is invariant for the whole region; keep it out of the pixel loop. */
             for (int y = i; y < max_height; y++) {
+                const uint8_t *src_pixel = (const uint8_t *)src + (size_t)y * src_stride_bytes +
+                                           (size_t)j * color_bytes;
+                int gy = lv_y_start + y;
+                int gx = lv_x_start + j;
+                int dy = (rotation == ESP_LV_ADAPTER_ROTATE_90) ? gx : ver_res - 1 - gx;
+                int dx = (rotation == ESP_LV_ADAPTER_ROTATE_90) ? phys_w - 1 - gy : gy;
+                uint8_t *dst_pixel = (uint8_t *)dst_fb + (size_t)(dy * phys_w + dx) * color_bytes;
+                ptrdiff_t dst_step = (rotation == ESP_LV_ADAPTER_ROTATE_90) ?
+                                     (ptrdiff_t)dst_stride_bytes : -(ptrdiff_t)dst_stride_bytes;
+
                 for (int x = j; x < max_width; x++) {
-                    int gx = lv_x_start + x;
-                    int gy = lv_y_start + y;
-                    int dx, dy;
-
-                    /* Inline coordinate transformation - eliminates function call overhead */
-                    if (rotation == ESP_LV_ADAPTER_ROTATE_90) {
-                        dx = phys_w - 1 - gy;
-                        dy = gx;
-                    } else { /* ESP_LV_ADAPTER_ROTATE_270 */
-                        dx = gy;
-                        dy = ver_res - 1 - gx;
-                    }
-
-                    const uint8_t *src_pixel = (const uint8_t *)src + (size_t)(y * src_stride_px + x) * color_bytes;
-                    uint8_t *dst_pixel = (uint8_t *)dst_fb + (size_t)(dy * phys_w + dx) * color_bytes;
-
-                    /* Inline pixel copy - eliminates function call overhead */
-                    if (color_bytes == 2) {
-                        *(uint16_t *)dst_pixel = *(const uint16_t *)src_pixel;
-                    } else if (color_bytes == 3) {
-                        dst_pixel[0] = src_pixel[0];
-                        dst_pixel[1] = src_pixel[1];
-                        dst_pixel[2] = src_pixel[2];
+                    display_copy_pixel(src_pixel, dst_pixel, color_bytes);
+                    src_pixel += color_bytes;
+                    if (x + 1 < max_width) {
+                        dst_pixel += dst_step;
                     }
                 }
             }
@@ -974,6 +1031,87 @@ release_mutex:
 
 out:
     return ret;
+}
+
+static esp_err_t display_bridge_dma2d_copy_contiguous_sync(const void *src,
+                                                           void *dst,
+                                                           size_t width,
+                                                           size_t height,
+                                                           uint8_t color_bytes)
+{
+    if ((color_bytes != 2 && color_bytes != 3) ||
+            !display_bridge_dma2d_window_is_compatible(src, width, 0, width, color_bytes) ||
+            !display_bridge_dma2d_window_is_compatible(dst, width, 0, width, color_bytes)) {
+        return ESP_ERR_NOT_SUPPORTED;
+    }
+
+#ifdef ESP_ASYNC_COLOR_CONVERT_AVAILABLE
+    async_color_convert_request_t transfer = {
+        .src_buffer = src,
+        .src_stride = width,
+        .src_height = height,
+        .dst_buffer = dst,
+        .dst_stride = width,
+        .dst_height = height,
+        .copy_width = width,
+        .copy_height = height,
+        .src_color_format = color_bytes == 2 ? ESP_COLOR_FOURCC_RGB16 : ESP_COLOR_FOURCC_RGB24,
+        .dst_color_format = color_bytes == 2 ? ESP_COLOR_FOURCC_RGB16 : ESP_COLOR_FOURCC_RGB24,
+    };
+#else
+    esp_async_fbcpy_trans_desc_t transfer = {
+        .src_buffer = (void *)src,
+        .src_buffer_size_x = width,
+        .src_buffer_size_y = height,
+        .dst_buffer = dst,
+        .dst_buffer_size_x = width,
+        .dst_buffer_size_y = height,
+        .copy_size_x = width,
+        .copy_size_y = height,
+#if defined(ESP_COLOR_FOURCC_RGB16) && defined(ESP_COLOR_FOURCC_RGB24)
+        .pixel_format_fourcc_id = color_bytes == 2 ? ESP_COLOR_FOURCC_RGB16 : ESP_COLOR_FOURCC_RGB24,
+#else
+        .pixel_format_unique_id = {
+            .color_type_id = color_bytes == 2 ?
+            COLOR_TYPE_ID(COLOR_SPACE_RGB, COLOR_PIXEL_RGB565) :
+            COLOR_TYPE_ID(COLOR_SPACE_RGB, COLOR_PIXEL_RGB888),
+        },
+#endif
+    };
+#endif
+    return display_bridge_dma2d_copy_sync(&transfer, portMAX_DELAY);
+}
+
+esp_err_t display_bridge_copy_to_dma_buffer(const void *src,
+                                            void *dst,
+                                            size_t width,
+                                            size_t height,
+                                            uint8_t color_bytes,
+                                            size_t cache_line_size,
+                                            display_bridge_dma2d_copy_state_t *dma2d_state)
+{
+    ESP_RETURN_ON_FALSE(src && dst && width && height && color_bytes,
+                        ESP_ERR_INVALID_ARG, TAG, "invalid DMA buffer copy");
+
+    if (dma2d_state && *dma2d_state != DISPLAY_BRIDGE_DMA2D_COPY_DISABLED) {
+        esp_err_t ret = display_bridge_dma2d_copy_contiguous_sync(src, dst, width, height, color_bytes);
+        if (ret == ESP_OK) {
+            if (*dma2d_state == DISPLAY_BRIDGE_DMA2D_COPY_UNCHECKED) {
+                ESP_LOGI(TAG, "DMA2D bounce copy enabled");
+            }
+            *dma2d_state = DISPLAY_BRIDGE_DMA2D_COPY_ENABLED;
+            return ESP_OK;
+        }
+        if (ret != ESP_ERR_NOT_SUPPORTED) {
+            ESP_LOGW(TAG, "DMA2D bounce copy failed (%s), using CPU fallback", esp_err_to_name(ret));
+        }
+        *dma2d_state = DISPLAY_BRIDGE_DMA2D_COPY_DISABLED;
+    }
+
+    size_t data_size = width * height * color_bytes;
+    memcpy(dst, src, data_size);
+    display_cache_msync_range(dst, data_size, cache_line_size);
+    return ESP_OK;
 }
 
 #endif /* SOC_DMA2D_SUPPORTED */
