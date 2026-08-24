@@ -1953,7 +1953,13 @@ static esp_err_t esp_ble_conn_ext_advertise(esp_ble_conn_session_t *conn_session
            refuses to reprogram. Stop it and take one more run: returning here
            leaves the instance advertising with the previous parameters, which
            is harder to notice than a failure to advertise at all. */
-        ble_gap_ext_adv_stop(conn_session->ext_adv_handle);
+        int stop_rc = ble_gap_ext_adv_stop(conn_session->ext_adv_handle);
+        /* EALREADY means the set ended between the two calls (a connection, or
+           duration expiry). The disable was still sent, so the retry is valid. */
+        if (stop_rc != 0 && stop_rc != BLE_HS_EALREADY) {
+            ESP_LOGE(TAG, "Stop extended advertising instance for reconfigure error; rc=%d", stop_rc);
+            return ESP_FAIL;
+        }
         rc = ble_gap_ext_adv_configure(conn_session->ext_adv_handle, &adv_params, NULL,
                                        esp_ble_conn_gap_event, conn_session);
     }
