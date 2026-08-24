@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2022-2023 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2022-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -7,6 +7,12 @@
 #pragma once
 
 #include "esp_flash_partitions.h"
+#include "esp_idf_version.h"
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
+#include "esp_efuse.h"
+#else
+#include "esp_flash_encrypt.h"
+#endif
 #include "bootloader_utility.h"
 #include "bootloader_custom_ota.h"
 
@@ -27,6 +33,15 @@ extern "C" {
 
 #define ESP_ERR_CUSTOM_OTA_BASE        0x2100
 #define CUSTOM_OTA_IMAGE_TYPE_INVALID (ESP_ERR_CUSTOM_OTA_BASE + 1)
+
+static inline bool bootloader_custom_flash_encryption_enabled(void)
+{
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
+    return esp_efuse_is_flash_encryption_enabled();
+#else
+    return esp_flash_encryption_enabled();
+#endif
+}
 
 typedef enum {
     DECOMPRESS_ENGINE,
