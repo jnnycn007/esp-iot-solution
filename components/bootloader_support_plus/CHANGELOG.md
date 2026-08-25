@@ -1,5 +1,11 @@
 # ChangeLog
 
+## v0.4.2 - 2026-08-24
+
+### Fix:
+
+- Replace deprecated `esp_flash_encryption_enabled()` with `esp_efuse_is_flash_encryption_enabled()` on IDF v6.0 and newer.
+
 ## v0.4.1 - 2026-06-10
 
 ### Fix:

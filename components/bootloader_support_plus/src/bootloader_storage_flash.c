@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2022-2023 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2022-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -7,8 +7,6 @@
 #include <string.h>
 
 #include "esp_log.h"
-#include "esp_flash_encrypt.h"
-#include "esp_idf_version.h"
 #include "bootloader_flash_priv.h"
 #include "bootloader_storage_flash.h"
 #include "bootloader_custom_malloc.h" // Note, this header is just used to provide malloc() and free() support.
@@ -124,7 +122,7 @@ int bootloader_storage_flash_input(void *buf, int size)
     static uint32_t write_count = 0;
 
     if (custom_ota_config->dst_offset + size < custom_ota_config->dst_size) {
-        if (esp_flash_encryption_enabled()) {
+        if (bootloader_custom_flash_encryption_enabled()) {
             encryption = true;
         }
         if (bootloader_storage_flash_write(custom_ota_config->dst_addr + custom_ota_config->dst_offset, buf, size, encryption) != ESP_OK) {
@@ -166,7 +164,7 @@ int bootloader_storage_flash_input(void *buf, int size)
     if (custom_ota_config->dst_offset + size < custom_ota_config->dst_size) {
         uint32_t dst_addr = custom_ota_config->dst_addr + custom_ota_config->dst_offset;
         ESP_LOGD(TAG, "write buffer %x to %x, len %d", buf, dst_addr, size);
-        if (esp_flash_encryption_enabled()) {
+        if (bootloader_custom_flash_encryption_enabled()) {
             encryption = true;
         }
         bootloader_flash_write(custom_ota_config->dst_addr + custom_ota_config->dst_offset, buf, size, encryption);

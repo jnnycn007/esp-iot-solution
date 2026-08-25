@@ -8,8 +8,9 @@ set(requires "bootloader" "bootloader_support" "spi_flash")
 # Since IDF v6.0 the watchdog HAL has graduated into its own component
 # (esp_hal_wdt). In earlier IDF versions hal/wdt_hal.h is provided by the
 # hal component, which is reachable through the existing requirements.
+# Flash encryption status also moved to the efuse component in IDF v6.0.
 if("${IDF_VERSION_MAJOR}.${IDF_VERSION_MINOR}" VERSION_GREATER_EQUAL "6.0")
-    list(APPEND requires "esp_hal_wdt")
+    list(APPEND requires "esp_hal_wdt" "efuse")
 endif()
 
 if(BOOTLOADER_BUILD)
