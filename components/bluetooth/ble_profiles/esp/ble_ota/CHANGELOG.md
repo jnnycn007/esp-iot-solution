@@ -1,3 +1,8 @@
+## v0.1.17 - 2026.08.25
+
+Bugfix:
+- BLE-OTA: Use espressif/cjson on ESP-IDF v6.0 and later; keep the built-in json component on older IDF versions.
+
 ## v0.1.16 - 2026.04.15
 
 Bugfix:
