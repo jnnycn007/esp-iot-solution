@@ -280,6 +280,10 @@
   - "components/network_provisioner/**/*"
   - "tools/cmake_utilities/package_manager.cmake"
 
+.patterns-components_esp_local_controller: &patterns-components_esp_local_controller
+  - "components/esp_local_controller/**/*"
+  - "tools/cmake_utilities/package_manager.cmake"
+
 .patterns-components_quickjs_ng: &patterns-components_quickjs_ng
   - "components/quickjs-ng/**/*"
   - "tools/cmake_utilities/package_manager.cmake"
@@ -544,6 +548,7 @@
   - "components/protocomm_ext/include/transports/protocomm_ext_http.h"
   - "components/protocomm_ext/include/transports/protocomm_ext_nimble.h"
   - "components/network_provisioner/include/network_provisioner.h"
+  - "components/esp_local_controller/include/esp_local_controller.h"
   - "components/sensors/ntc_driver/include/ntc_driver.h"
   - "components/sensors/power_measure/include/power_measure.h"
   - "components/sensors/power_monitor/ina236/include/ina236.h"
@@ -943,6 +948,9 @@
 
 .patterns-example_network_provisioner: &patterns-example_network_provisioner
   - "examples/network_provisioner/**/*"
+
+.patterns-example_esp_local_controller: &patterns-example_esp_local_controller
+  - "examples/esp_local_controller/**/*"
 
 .patterns-example_weaver_imu_gesture: &patterns-example_weaver_imu_gesture
   - "examples/weaver/imu_gesture/**/*"
@@ -3709,6 +3717,19 @@
     - <<: *if-dev-push
       changes: *patterns-components_protocomm_ext
 
+.rules:build:components_esp_local_controller_test_apps:
+  rules:
+    - <<: *if-protected
+    - <<: *if-label-build
+    - <<: *if-label-target_test
+    - <<: *if-trigger-job
+    - <<: *if-dev-push
+      changes: *patterns-build_system
+    - <<: *if-dev-push
+      changes: *patterns-components_esp_local_controller
+    - <<: *if-dev-push
+      changes: *patterns-components_protocomm_ext
+
 .rules:build:tools_cmake_utilities_test_apps:
   rules:
     - <<: *if-protected
@@ -3760,6 +3781,21 @@
       changes: *patterns-components_protocomm_ext
     - <<: *if-dev-push
       changes: *patterns-example_network_provisioner
+
+.rules:build:example_esp_local_controller:
+  rules:
+    - <<: *if-protected
+    - <<: *if-label-build
+    - <<: *if-label-target_test
+    - <<: *if-trigger-job
+    - <<: *if-dev-push
+      changes: *patterns-build_system
+    - <<: *if-dev-push
+      changes: *patterns-components_esp_local_controller
+    - <<: *if-dev-push
+      changes: *patterns-components_protocomm_ext
+    - <<: *if-dev-push
+      changes: *patterns-example_esp_local_controller
 
 .rules:build:example_xiaozhi_chat:
   rules:

@@ -153,6 +153,10 @@ examples/esp_gmp/gmp_ota/ble_gmp_ota_server:
   enable:
     - if: SOC_BLE_SUPPORTED == 1
 
+examples/esp_local_controller:
+  enable:
+    - if: IDF_TARGET in ["esp32","esp32s3","esp32c2","esp32c3","esp32c5","esp32c6","esp32c61"] and IDF_VERSION >= "5.3"
+
 examples/bluetooth/ble_uart_service:
   enable:
     - if: IDF_TARGET in ["esp32s3"] and (IDF_VERSION_MAJOR == 5 and IDF_VERSION_MINOR == 5)
