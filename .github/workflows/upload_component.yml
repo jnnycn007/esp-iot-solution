@@ -107,6 +107,7 @@ jobs:
             components/motor/servo;
             components/mcp-c-sdk;
             components/openai;
+            components/network_provisioner;
             components/protocomm_ext;
             components/quickjs-ng;
             components/sensors/adc/mcp3201;

@@ -182,6 +182,10 @@ examples/mcp/mcp_client:
     - if: IDF_TARGET in ["esp32","esp32c2","esp32c3","esp32c6","esp32s3"] and (IDF_VERSION_MAJOR == 5 and IDF_VERSION_MINOR == 4)
     - if: IDF_TARGET in ["esp32","esp32c2","esp32c3","esp32c6","esp32s3"] and (IDF_VERSION_MAJOR == 5 and IDF_VERSION_MINOR == 5)
 
+examples/network_provisioner:
+  enable:
+    - if: IDF_TARGET in ["esp32","esp32s3","esp32c2","esp32c3","esp32c5","esp32c6","esp32c61"] and IDF_VERSION >= "5.3"
+
 examples/quickjs-ng:
   enable:
     - if: INCLUDE_DEFAULT == 1
