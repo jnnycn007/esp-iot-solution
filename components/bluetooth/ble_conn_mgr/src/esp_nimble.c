@@ -796,7 +796,6 @@ static void esp_ble_conn_set_default_adv_params(esp_ble_conn_session_t *conn_ses
     conn_session->adv_params_cfg.adv_event_properties = 0;
     conn_session->adv_params_cfg.ext_adv_cap = 0;
 #endif
-    conn_session->ext_adv_handle = conn_session->adv_params_cfg.adv_handle;
 }
 
 #if defined(CONFIG_BLE_CONN_MGR_ROLE_CENTRAL) || defined(CONFIG_BLE_CONN_MGR_ROLE_BOTH)
@@ -1948,6 +1947,21 @@ static esp_err_t esp_ble_conn_ext_advertise(esp_ble_conn_session_t *conn_session
     /* configure instance */
     rc = ble_gap_ext_adv_configure(conn_session->ext_adv_handle, &adv_params, NULL,
                                    esp_ble_conn_gap_event, conn_session);
+    if (rc == BLE_HS_EBUSY) {
+        /* The instance is still enabled, which ble_gap_ext_adv_configure()
+           refuses to reprogram. Stop it and take one more run: returning here
+           leaves the instance advertising with the previous parameters, which
+           is harder to notice than a failure to advertise at all. */
+        int stop_rc = ble_gap_ext_adv_stop(conn_session->ext_adv_handle);
+        /* EALREADY means the set ended between the two calls (a connection, or
+           duration expiry). The disable was still sent, so the retry is valid. */
+        if (stop_rc != 0 && stop_rc != BLE_HS_EALREADY) {
+            ESP_LOGE(TAG, "Stop extended advertising instance for reconfigure error; rc=%d", stop_rc);
+            return ESP_FAIL;
+        }
+        rc = ble_gap_ext_adv_configure(conn_session->ext_adv_handle, &adv_params, NULL,
+                                       esp_ble_conn_gap_event, conn_session);
+    }
     if (rc) {
         ESP_LOGE(TAG, "Configure extended advertising instance error; rc=%d", rc);
         return ESP_FAIL;
@@ -2504,6 +2518,14 @@ static int esp_ble_conn_gap_event(struct ble_gap_event *event, void *arg)
         case BLE_GAP_EVENT_ADV_COMPLETE:
 #if BLE_CONN_MGR_NIMBLE_USE_EXT_GAP
             if (event->adv_complete.instance != conn_session->ext_adv_handle) {
+                break;
+            }
+            /* reason 0 means the advertising set terminated because a connection
+               was established. Restarting connectable advertising with the slot
+               taken fails with BLE_HS_ENOMEM and leaves the previously
+               configured parameters in force; BLE_GAP_EVENT_DISCONNECT is what
+               resumes advertising. */
+            if (event->adv_complete.reason == 0) {
                 break;
             }
 #endif
@@ -3305,6 +3327,7 @@ esp_err_t esp_ble_conn_init(esp_ble_conn_config_t *config)
 
     /* Set default advertising parameters (can be overridden via esp_ble_conn_adv_params_set) */
     esp_ble_conn_set_default_adv_params(conn_session);
+    conn_session->ext_adv_handle = conn_session->adv_params_cfg.adv_handle;
     conn_session->adv_params_set = false;
 
 #if defined(CONFIG_BLE_CONN_MGR_EXTENDED_ADV)
@@ -3727,12 +3750,24 @@ esp_err_t esp_ble_conn_adv_params_set(const esp_ble_conn_adv_params_t *params)
         }
 #endif
         s_conn_session->adv_params_cfg = *params;
-        s_conn_session->ext_adv_handle = params->adv_handle;
         s_conn_session->adv_params_set = true;
     } else {
         esp_ble_conn_set_default_adv_params(s_conn_session);
         s_conn_session->adv_params_set = false;
     }
+    return ESP_OK;
+}
+
+esp_err_t esp_ble_conn_adv_params_get(esp_ble_conn_adv_params_t *out_params)
+{
+    if (!s_conn_session) {
+        return ESP_ERR_INVALID_STATE;
+    }
+    if (!out_params) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    *out_params = s_conn_session->adv_params_cfg;
     return ESP_OK;
 }
 
@@ -4144,6 +4179,28 @@ esp_err_t esp_ble_conn_adv_stop(void)
     ESP_LOGW(TAG, "Failed to stop advertising; rc=%d", rc);
     return ESP_FAIL;
 #else
+    return ESP_ERR_INVALID_STATE;
+#endif
+}
+
+esp_err_t esp_ble_conn_adv_is_active(bool *out_active)
+{
+#if defined(CONFIG_BLE_CONN_MGR_ROLE_PERIPHERAL) || defined(CONFIG_BLE_CONN_MGR_ROLE_BOTH)
+    if (!s_conn_session) {
+        return ESP_ERR_INVALID_STATE;
+    }
+    if (!out_active) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+#if BLE_CONN_MGR_NIMBLE_USE_EXT_GAP
+    *out_active = ble_gap_ext_adv_active(s_conn_session->ext_adv_handle) != 0;
+#else
+    *out_active = ble_gap_adv_active() != 0;
+#endif
+    return ESP_OK;
+#else
+    (void)out_active;
     return ESP_ERR_INVALID_STATE;
 #endif
 }

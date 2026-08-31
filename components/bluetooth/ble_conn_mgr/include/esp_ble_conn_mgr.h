@@ -1026,6 +1026,11 @@ esp_err_t esp_ble_conn_set_data_len(uint16_t conn_handle, uint16_t tx_octets, ui
 /**
  * @brief   Configure advertising parameters.
  *
+ * @note    The parameters are stored and take effect the next time advertising
+ *          starts. Unlike @c esp_ble_conn_adv_data_set(), this does not reapply
+ *          them to an advertising instance that is already active; stop and
+ *          start advertising to change the parameters of a live instance.
+ *
  * @param[in] params  Advertising parameters (NULL to use defaults)
  *
  * @return
@@ -1033,6 +1038,23 @@ esp_err_t esp_ble_conn_set_data_len(uint16_t conn_handle, uint16_t tx_octets, ui
  *  - ESP_ERR_INVALID_STATE if BLE connection manager is not initialized
  */
 esp_err_t esp_ble_conn_adv_params_set(const esp_ble_conn_adv_params_t *params);
+
+/**
+ * @brief   Read back the configured advertising parameters.
+ *
+ * @note    This reports intent, not what is on air: the block returned is the
+ *          one that is or would be programmed at the next advertising start.
+ *          Use @c esp_ble_conn_adv_is_active() to find out whether the
+ *          controller is advertising with it.
+ *
+ * @param[out] out_params  Receives the currently configured parameters.
+ *
+ * @return
+ *  - ESP_OK on success
+ *  - ESP_ERR_INVALID_STATE if BLE connection manager is not initialized
+ *  - ESP_ERR_INVALID_ARG if out_params is NULL
+ */
+esp_err_t esp_ble_conn_adv_params_get(esp_ble_conn_adv_params_t *out_params);
 
 /**
  * @brief   Rebuild the controller whitelist from the bonded peers in the store.
@@ -1136,6 +1158,22 @@ esp_err_t esp_ble_conn_adv_start(void);
  *  - ESP_FAIL on other error
  */
 esp_err_t esp_ble_conn_adv_stop(void);
+
+/**
+ * @brief   Whether the advertising instance is currently on air (peripheral role).
+ *
+ * @note    This reports what the controller is doing, which is not always what
+ *          was asked for: advertising also stops on its own when a connection
+ *          is established, and a start can fail.
+ *
+ * @param[out] out_active  Receives true while advertising.
+ *
+ * @return
+ *  - ESP_OK on success
+ *  - ESP_ERR_INVALID_STATE if not initialized or not in peripheral role
+ *  - ESP_ERR_INVALID_ARG if out_active is NULL
+ */
+esp_err_t esp_ble_conn_adv_is_active(bool *out_active);
 
 /**
  * @brief   Configure scan parameters.

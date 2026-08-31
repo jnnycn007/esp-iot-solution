@@ -1,5 +1,16 @@
 # ChangeLog
 
+## v1.2.2 - 2026-08-26
+
+### Bug Fixes:
+
+- Skip extended advertising restart on `BLE_GAP_EVENT_ADV_COMPLETE` with reason 0 (connection established), so connectable advertising is not restarted while the connection slot is taken.
+- On `BLE_HS_EBUSY` from `ble_gap_ext_adv_configure()`, stop the active instance and retry; report a failed stop instead of only the subsequent configure error.
+
+### Enhancements:
+
+- Add `esp_ble_conn_adv_params_get()` and `esp_ble_conn_adv_is_active()` so applications can read back configured advertising parameters and whether advertising is currently active. Document that `esp_ble_conn_adv_params_set()` takes effect on the next start, unlike `esp_ble_conn_adv_data_set()`.
+
 ## v1.2.1 - 2026-08-04
 
 ### Enhancements:
