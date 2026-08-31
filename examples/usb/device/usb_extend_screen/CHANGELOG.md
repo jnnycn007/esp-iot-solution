@@ -1,5 +1,11 @@
 # ChangeLog
 
+## v0.3.1 2026-8-5
+
+### Enhancements:
+
+* Decode JPEG frames to the RGB565 or RGB888 framebuffer format selected by the Board Manager display configuration
+
 ## v0.3.0 2026-7-29
 
 ### Enhancements:

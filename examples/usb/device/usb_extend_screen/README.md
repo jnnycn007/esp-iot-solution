@@ -4,7 +4,7 @@ Use [LaunchPad](https://espressif.github.io/esp-launchpad/?flashConfigURL=https:
 
 The USB extended display example turns a compatible ESP32-P4, ESP32-S31, or ESP32-S3 board into a secondary display for Windows. Board peripherals are described and initialized by [ESP Board Manager](https://github.com/espressif/esp-board-manager), so the application is not tied to a specific BSP.
 
-This example uses Board Manager board definitions directly and accesses board peripherals through the agreed device names. A compatible board must provide a landscape RGB565 `display_lcd` device. Touch requires `lcd_touch`; USB audio requires `audio_dac` and `audio_adc`; backlight control is enabled automatically when `lcd_brightness` exists. Custom Board Manager board definitions should use the same device names.
+This example uses Board Manager board definitions directly and accesses board peripherals through the agreed device names. A compatible board must provide a landscape `display_lcd` device with an RGB565 or RGB888 framebuffer. Touch requires `lcd_touch`; USB audio requires `audio_dac` and `audio_adc`; backlight control is enabled automatically when `lcd_brightness` exists. Custom Board Manager board definitions should use the same device names.
 
 The example supports the following features:
 
@@ -111,7 +111,7 @@ For preparation, refer to [windows_driver](./windows_driver/README_cn.md).
 
 ### Changing the Secondary Screen Resolution
 
-* The resolution comes from the selected board's `display_lcd` configuration; it is also used to build the USB vendor string, HID coordinate range, frame validation, and JPEG output buffers.
+* The resolution and RGB565/RGB888 framebuffer format come from the selected board's `display_lcd` configuration; they are also used to build the USB vendor string, HID coordinate range, frame validation, and JPEG output buffers.
 * To use another panel, select a matching board definition or apply/create a Board Manager amend, then run `idf.py bmgr` again.
 
 **Note:** The driver currently does not support portrait-oriented screens. Please use a screen designed for landscape mode.
@@ -120,7 +120,7 @@ For preparation, refer to [windows_driver](./windows_driver/README_cn.md).
 
 * ESP-IDF firmware built for ESP32-P4 revisions `<3.0` and `>=3.0` is mutually incompatible. Board Manager selects the board and target, but it does not select the silicon revision. For a `<3.0` chip, enable `CONFIG_ESP32P4_SELECTS_REV_LESS_V3` with `idf.py menuconfig` and perform a clean rebuild; do not put this setting in generic board defaults.
 * Hardware JPEG output is rounded to the input JPEG's MCU size: 8×8 for YUV444, 16×8 for YUV422, and 16×16 for YUV420. The example parses each JPEG header, reserves worst-case 16×16-aligned storage, and removes row padding before drawing. A visible resolution such as 1024×600 therefore does not need to be changed to 1024×608.
-* Revisions `<3.0` also restrict some YUV-to-YUV conversions. This example always decodes to RGB565 and does not use those restricted combinations.
+* Revisions `<3.0` also restrict some YUV-to-YUV conversions. This example decodes directly to the display's RGB565 or RGB888 framebuffer format and does not use those restricted combinations.
 
 ### Adjusting Image Output Frame Rate
 
