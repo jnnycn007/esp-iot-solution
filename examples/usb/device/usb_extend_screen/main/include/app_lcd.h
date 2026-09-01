@@ -17,8 +17,6 @@
 extern "C" {
 #endif
 
-#define EXAMPLE_LCD_BIT_PER_PIXEL           (16)
-
 /**
  * @brief Initialize the LCD panel.
  *

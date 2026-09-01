@@ -4,7 +4,7 @@
 
 USB 扩展屏示例可以将兼容的 ESP32-P4、ESP32-S31 或 ESP32-S3 开发板作为一块 Windows 副屏。板级外设由 [ESP Board Manager](https://github.com/espressif/esp-board-manager) 描述和初始化，应用代码不再绑定某一个 BSP。
 
-本示例直接使用 Board Manager 板卡定义，并按约定的设备名获取板级外设。兼容板卡需要提供横屏 RGB565 的 `display_lcd` 设备；触摸功能要求设备名为 `lcd_touch`；USB 音频要求存在 `audio_dac` 和 `audio_adc`；如果板卡提供 `lcd_brightness`，示例会自动打开背光。接入自定义板卡时，请在其 Board Manager 板卡定义中沿用这些设备名。
+本示例直接使用 Board Manager 板卡定义，并按约定的设备名获取板级外设。兼容板卡需要提供帧缓冲格式为 RGB565 或 RGB888 的横屏 `display_lcd` 设备；触摸功能要求设备名为 `lcd_touch`；USB 音频要求存在 `audio_dac` 和 `audio_adc`；如果板卡提供 `lcd_brightness`，示例会自动打开背光。接入自定义板卡时，请在其 Board Manager 板卡定义中沿用这些设备名。
 
 支持以下功能：
 
@@ -120,7 +120,7 @@ idf.py bmgr -b <新板卡名称>
 
 ### 修改副屏分辨率
 
-* 分辨率直接来自所选板卡的 `display_lcd` 配置，并同时用于生成 USB vendor 字符串、HID 触摸坐标范围、帧校验和 JPEG 输出缓冲区。
+* 分辨率以及 RGB565/RGB888 帧缓冲格式直接来自所选板卡的 `display_lcd` 配置，并同时用于生成 USB vendor 字符串、HID 触摸坐标范围、帧校验和 JPEG 输出缓冲区。
 * 更换屏幕时，请选择匹配的板卡定义，或创建/叠加 Board Manager amend，然后重新执行 `idf.py bmgr`。
 
 Note: 目前驱动不支持竖屏的屏幕，请使用硬件上为横屏的屏幕。
@@ -129,7 +129,7 @@ Note: 目前驱动不支持竖屏的屏幕，请使用硬件上为横屏的屏�
 
 * ESP-IDF 对 ESP32-P4 `<3.0` 和 `>=3.0` 生成的固件互不兼容。Board Manager 负责选择板卡和目标芯片，但不代替芯片版本选择。使用 `<3.0` 芯片时，请在 `idf.py menuconfig` 中启用 `CONFIG_ESP32P4_SELECTS_REV_LESS_V3`，然后重新完整编译；不要把这一选项写进通用板卡 defaults。
 * 硬件 JPEG 解码输出会按输入 JPEG 的 MCU 对齐：YUV444 为 8×8、YUV422 为 16×8、YUV420 为 16×16。示例会解析每帧 JPEG 头、预留最坏情况下的 16×16 对齐空间，并在送屏前移除行尾填充，因此像 1024×600 这样的可见分辨率不需要改成 1024×608。
-* `<3.0` 芯片还限制部分 YUV 到 YUV 的格式转换；本示例固定解码为 RGB565，不使用这些受限组合。
+* `<3.0` 芯片还限制部分 YUV 到 YUV 的格式转换；本示例直接解码为屏幕配置的 RGB565 或 RGB888 帧缓冲格式，不使用这些受限组合。
 
 ### 修改图像输出帧率
 

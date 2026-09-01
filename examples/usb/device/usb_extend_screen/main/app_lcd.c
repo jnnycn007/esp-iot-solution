@@ -39,8 +39,9 @@ static size_t s_decode_buffer_sizes[LCD_DECODE_BUFFER_COUNT];
 static size_t s_decode_buffer_len;
 static uint16_t s_lcd_width;
 static uint16_t s_lcd_height;
+static size_t s_lcd_bytes_per_pixel;
+static dev_display_lcd_frame_format_t s_lcd_frame_format;
 static uint8_t s_buffer_index;
-static bool s_jpeg_output_big_endian;
 
 #if CONFIG_SOC_JPEG_DECODE_SUPPORTED
 static jpeg_decoder_handle_t s_jpeg_decoder;
@@ -53,11 +54,42 @@ static jpeg_decode_cfg_t s_decode_config = {
 };
 #endif
 
-static bool app_lcd_uses_panel_data_endian(const dev_display_lcd_config_t *display_config)
+static size_t app_lcd_frame_format_bytes_per_pixel(dev_display_lcd_frame_format_t format)
 {
-    return strcmp(display_config->sub_type, ESP_BOARD_DEVICE_LCD_SUB_TYPE_SPI) == 0 ||
-           strcmp(display_config->sub_type, ESP_BOARD_DEVICE_LCD_SUB_TYPE_I80) == 0 ||
-           strcmp(display_config->sub_type, ESP_BOARD_DEVICE_LCD_SUB_TYPE_PARLIO) == 0;
+    switch (format) {
+    case DEV_DISPLAY_LCD_FRAME_FORMAT_RGB565_LE:
+    case DEV_DISPLAY_LCD_FRAME_FORMAT_RGB565_BE:
+        return 2;
+    case DEV_DISPLAY_LCD_FRAME_FORMAT_BGR888:
+    case DEV_DISPLAY_LCD_FRAME_FORMAT_RGB888:
+        return 3;
+    default:
+        return 0;
+    }
+}
+
+#if CONFIG_SOC_JPEG_DECODE_SUPPORTED
+static bool app_lcd_frame_format_uses_rgb_order(dev_display_lcd_frame_format_t format)
+{
+    return format == DEV_DISPLAY_LCD_FRAME_FORMAT_RGB565_BE ||
+           format == DEV_DISPLAY_LCD_FRAME_FORMAT_RGB888;
+}
+#endif
+
+static const char *app_lcd_frame_format_name(dev_display_lcd_frame_format_t format)
+{
+    switch (format) {
+    case DEV_DISPLAY_LCD_FRAME_FORMAT_RGB565_LE:
+        return "RGB565_LE";
+    case DEV_DISPLAY_LCD_FRAME_FORMAT_RGB565_BE:
+        return "RGB565_BE";
+    case DEV_DISPLAY_LCD_FRAME_FORMAT_BGR888:
+        return "BGR888";
+    case DEV_DISPLAY_LCD_FRAME_FORMAT_RGB888:
+        return "RGB888";
+    default:
+        return "unknown";
+    }
 }
 
 static esp_err_t app_lcd_backlight_set(uint32_t brightness_percent)
@@ -113,7 +145,7 @@ static esp_err_t app_lcd_allocate_decode_buffers(void)
     ESP_LOGI(TAG, "JPEG buffer: visible=%ux%u, MCU-aligned capacity=%ux%u",
              s_lcd_width, s_lcd_height, (unsigned)output_width, (unsigned)output_height);
 #endif
-    s_decode_buffer_len = output_width * output_height * EXAMPLE_LCD_BIT_PER_PIXEL / 8;
+    s_decode_buffer_len = output_width * output_height * s_lcd_bytes_per_pixel;
 
     for (size_t i = 0; i < LCD_DECODE_BUFFER_COUNT; i++) {
 #if CONFIG_SOC_JPEG_DECODE_SUPPORTED
@@ -177,8 +209,12 @@ static jpeg_error_t app_lcd_decode_jpeg(const uint8_t *input, size_t input_len, 
                                         size_t output_len, uint16_t width, uint16_t height)
 {
     jpeg_dec_config_t config = DEFAULT_JPEG_DEC_CONFIG();
-    config.output_type = s_jpeg_output_big_endian ?
-                         JPEG_PIXEL_FORMAT_RGB565_BE : JPEG_PIXEL_FORMAT_RGB565_LE;
+    if (s_lcd_bytes_per_pixel == 3) {
+        config.output_type = JPEG_PIXEL_FORMAT_RGB888;
+    } else {
+        config.output_type = s_lcd_frame_format == DEV_DISPLAY_LCD_FRAME_FORMAT_RGB565_BE ?
+                             JPEG_PIXEL_FORMAT_RGB565_BE : JPEG_PIXEL_FORMAT_RGB565_LE;
+    }
 
     jpeg_dec_handle_t decoder = NULL;
     jpeg_error_t ret = jpeg_dec_open(&config, &decoder);
@@ -253,7 +289,7 @@ void app_lcd_draw(uint8_t *buf, uint32_t len, uint16_t width, uint16_t height)
         return;
     }
 
-    size_t expected_output_size = output_width * output_height * EXAMPLE_LCD_BIT_PER_PIXEL / 8;
+    size_t expected_output_size = output_width * output_height * s_lcd_bytes_per_pixel;
     if (expected_output_size > s_decode_buffer_sizes[s_buffer_index]) {
         ESP_LOGW(TAG, "JPEG output too large: %u > %u", (unsigned)expected_output_size,
                  (unsigned)s_decode_buffer_sizes[s_buffer_index]);
@@ -280,8 +316,8 @@ void app_lcd_draw(uint8_t *buf, uint32_t len, uint16_t width, uint16_t height)
      */
     if (output_width != width) {
         uint8_t *output = s_decode_buffers[s_buffer_index];
-        size_t visible_row_size = width * EXAMPLE_LCD_BIT_PER_PIXEL / 8;
-        size_t decoded_row_size = output_width * EXAMPLE_LCD_BIT_PER_PIXEL / 8;
+        size_t visible_row_size = width * s_lcd_bytes_per_pixel;
+        size_t decoded_row_size = output_width * s_lcd_bytes_per_pixel;
         for (size_t row = 1; row < height; row++) {
             memmove(output + row * visible_row_size, output + row * decoded_row_size,
                     visible_row_size);
@@ -293,6 +329,15 @@ void app_lcd_draw(uint8_t *buf, uint32_t len, uint16_t width, uint16_t height)
     if (jpeg_ret != JPEG_ERR_OK) {
         ESP_LOGD(TAG, "JPEG decode failed: %d", jpeg_ret);
         return;
+    }
+    if (s_lcd_frame_format == DEV_DISPLAY_LCD_FRAME_FORMAT_BGR888) {
+        uint8_t *output = s_decode_buffers[s_buffer_index];
+        size_t output_len = (size_t)width * height * s_lcd_bytes_per_pixel;
+        for (size_t offset = 0; offset < output_len; offset += s_lcd_bytes_per_pixel) {
+            uint8_t red = output[offset];
+            output[offset] = output[offset + 2];
+            output[offset + 2] = red;
+        }
     }
 #endif
 
@@ -344,14 +389,18 @@ esp_err_t app_lcd_init(void)
     s_lcd_height = display_config->swap_xy ? display_config->lcd_width : display_config->lcd_height;
     ESP_RETURN_ON_FALSE(s_lcd_width && s_lcd_height, ESP_ERR_INVALID_SIZE, TAG,
                         "Board Manager returned an invalid display resolution");
-    s_jpeg_output_big_endian = app_lcd_uses_panel_data_endian(display_config) &&
-                               display_config->data_endian == LCD_RGB_DATA_ENDIAN_BIG;
-    ESP_LOGI(TAG, "Board display: %s (%s), resolution=%ux%u, RGB565=%s-endian",
+    s_lcd_frame_format = display_config->frame_format;
+    s_lcd_bytes_per_pixel = app_lcd_frame_format_bytes_per_pixel(s_lcd_frame_format);
+    ESP_RETURN_ON_FALSE(s_lcd_bytes_per_pixel != 0, ESP_ERR_NOT_SUPPORTED, TAG,
+                        "unsupported display frame format: %d", s_lcd_frame_format);
+    ESP_LOGI(TAG, "Board display: %s (%s), resolution=%ux%u, framebuffer=%s",
              display_config->chip, display_config->sub_type, s_lcd_width, s_lcd_height,
-             s_jpeg_output_big_endian ? "big" : "little");
+             app_lcd_frame_format_name(s_lcd_frame_format));
 
 #if CONFIG_SOC_JPEG_DECODE_SUPPORTED
-    s_decode_config.rgb_order = s_jpeg_output_big_endian ?
+    s_decode_config.output_format = s_lcd_bytes_per_pixel == 3 ?
+                                    JPEG_DECODE_OUT_FORMAT_RGB888 : JPEG_DECODE_OUT_FORMAT_RGB565;
+    s_decode_config.rgb_order = app_lcd_frame_format_uses_rgb_order(s_lcd_frame_format) ?
                                 JPEG_DEC_RGB_ELEMENT_ORDER_RGB : JPEG_DEC_RGB_ELEMENT_ORDER_BGR;
     jpeg_decode_engine_cfg_t engine_config = {
         .intr_priority = 1,
