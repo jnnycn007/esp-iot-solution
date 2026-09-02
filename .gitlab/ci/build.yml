@@ -75,6 +75,15 @@
       - IMAGE: espressif/idf:release-v5.4
       - IMAGE: espressif/idf:release-v5.5
 
+.build_idf_ge_than_v5_3_to_v6_2:
+  parallel:
+    matrix:
+      - IMAGE: espressif/idf:release-v5.3
+      - IMAGE: espressif/idf:release-v5.4
+      - IMAGE: espressif/idf:release-v5.5
+      - IMAGE: espressif/idf:release-v6.0
+      - IMAGE: espressif/idf:latest
+
 .build_idf_ge_than_v5_4:
   parallel:
     matrix:
@@ -1660,6 +1669,14 @@ build_components_sensors_gas_bme690_test_apps:
     - .build_idf_ge_than_v5_3
   variables:
     EXAMPLE_DIR: components/sensors/gas/bme690/test_apps
+
+build_components_sensors_magnetometer_bmm150_test_apps:
+  extends:
+    - .build_examples_template
+    - .rules:build:components_sensors_magnetometer_bmm150_test_apps
+    - .build_idf_ge_than_v5_3_to_v6_2
+  variables:
+    EXAMPLE_DIR: components/sensors/magnetometer/bmm150/test_apps
 
 build_components_sensors_gesture_apds9960_test_apps:
   extends:

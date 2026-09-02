@@ -18,3 +18,4 @@ Sensors
     Battery Fuel Gauge<battery_fuel_gauge>
     ADC Sensor<adc>
     Gas Sensor<gas>
+    Magnetometer<magnetometer>

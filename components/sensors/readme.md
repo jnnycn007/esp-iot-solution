@@ -37,6 +37,12 @@
 | LIS2DH12 | 3-axis acceler               | I2C | ST         | [datasheet](https://www.st.com/resource/en/datasheet/lis2dh12.pdf)                         |
 | MPU6050  | 3-axis acceler + 3-axis gyro | I2C | InvenSense | [datasheet](https://invensense.tdk.com/wp-content/uploads/2015/02/MPU-6000-Datasheet1.pdf) |
 
+### 6. Magnetometer
+
+| Name   | Function             | Bus      | Vendor | Datasheet                                                                                        |
+| ------ | -------------------- | -------- | ------ | ------------------------------------------------------------------------------------------------ |
+| BMM150 | 3-axis magnetometer  | I2C, AUX | BOSCH  | [datasheet](https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmm150-ds001.pdf) |
+
 ## Sensors Hal
 
 |  Type Name   |          Function          |     Supported Sensors      |

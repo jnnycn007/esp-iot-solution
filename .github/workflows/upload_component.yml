@@ -118,6 +118,7 @@ jobs:
             components/sensors/battery_fuel_gauge/bq27220;
             components/sensors/power_measure;
             components/sensors/gas/bme690;
+            components/sensors/magnetometer/bmm150;
             components/sensors/gesture/apds9960;
             components/sensors/humiture/aht20;
             components/sensors/humiture/hdc2010;
