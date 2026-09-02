@@ -10,6 +10,7 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "esp_rom_sys.h"
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -84,12 +85,25 @@ void bmm150_delay(uint32_t period, void *intf_ptr)
 {
     (void)intf_ptr;
 
-    if (period < 1000) {
-        /* Busy wait for periods <1 ms to keep micro-second accuracy */
-        esp_rom_delay_us(period);
-    } else {
-        /* Use RTOS delay for periods ≥1 ms (rounded up) */
-        vTaskDelay(pdMS_TO_TICKS((period + 999) / 1000));
+    if (period == 0) {
+        return;
+    }
+
+    int64_t start_us = esp_timer_get_time();
+    uint64_t full_ticks = ((uint64_t)period * configTICK_RATE_HZ) / 1000000ULL;
+
+    /*
+     * vTaskDelay() wakes on tick boundaries and can therefore block for up
+     * to one tick less than expected. Measure the actual elapsed time below
+     * and busy-wait only for the remaining microseconds.
+     */
+    if (full_ticks > 0) {
+        vTaskDelay((TickType_t)full_ticks);
+    }
+
+    int64_t elapsed_us = esp_timer_get_time() - start_us;
+    if (elapsed_us < period) {
+        esp_rom_delay_us(period - (uint32_t)elapsed_us);
     }
 }
 
