@@ -316,6 +316,10 @@
   - "components/sensors/gas/bme690/**/*"
   - "tools/cmake_utilities/package_manager.cmake"
 
+.patterns-components_sensors_magnetometer_bmm150: &patterns-components_sensors_magnetometer_bmm150
+  - "components/sensors/magnetometer/bmm150/**/*"
+  - "tools/cmake_utilities/package_manager.cmake"
+
 .patterns-components_sensors_gesture_apds9960: &patterns-components_sensors_gesture_apds9960
   - "components/sensors/gesture/apds9960/**/*"
   - "tools/cmake_utilities/package_manager.cmake"
@@ -3201,6 +3205,19 @@
       changes: *patterns-build_system
     - <<: *if-dev-push
       changes: *patterns-components_sensors_gas_bme690
+    - <<: *if-dev-push
+      changes: *patterns-components_i2c_bus
+
+.rules:build:components_sensors_magnetometer_bmm150_test_apps:
+  rules:
+    - <<: *if-protected
+    - <<: *if-label-build
+    - <<: *if-label-target_test
+    - <<: *if-trigger-job
+    - <<: *if-dev-push
+      changes: *patterns-build_system
+    - <<: *if-dev-push
+      changes: *patterns-components_sensors_magnetometer_bmm150
     - <<: *if-dev-push
       changes: *patterns-components_i2c_bus
 

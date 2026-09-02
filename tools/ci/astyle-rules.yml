@@ -50,6 +50,9 @@ not_formatted_permanent:
     - "components/sensors/gas/bme690/bme69x.c"
     - "components/sensors/gas/bme690/bme69x.h"
     - "components/sensors/gas/bme690/bme69x_defs.h"
+    - "components/sensors/magnetometer/bmm150/bmm150.c"
+    - "components/sensors/magnetometer/bmm150/bmm150.h"
+    - "components/sensors/magnetometer/bmm150/bmm150_defs.h"
 
 docs:
   # Docs directory contains some .inc files, which are not C include files
