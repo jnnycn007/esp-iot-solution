@@ -39,9 +39,10 @@
 
 ### 6. Magnetometer
 
-| Name   | Function             | Bus      | Vendor | Datasheet                                                                                        |
-| ------ | -------------------- | -------- | ------ | ------------------------------------------------------------------------------------------------ |
+| Name   | Function             | Bus      | Vendor | Datasheet                                                                                                        |
+| ------ | -------------------- | -------- | ------ | ---------------------------------------------------------------------------------------------------------------- |
 | BMM150 | 3-axis magnetometer  | I2C, AUX | BOSCH  | [datasheet](https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmm150-ds001.pdf) |
+| BMM350 | 3-axis magnetometer  | I2C      | BOSCH  | [datasheet](https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmm350-ds001.pdf) |
 
 ## Sensors Hal
 

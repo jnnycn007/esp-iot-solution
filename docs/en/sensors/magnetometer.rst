@@ -8,8 +8,13 @@ The magnetometer measures 3-axis magnetic field strength. It is commonly used fo
 Adapted Products
 ----------------
 
-+--------+----------------------+----------+--------+----------------------------------------------------------------------------------------------------------------+-----+
-|  Name  | Function             | Bus      | Vendor | Datasheet                                                                                                      | HAL |
-+========+======================+==========+========+================================================================================================================+=====+
-| BMM150 | 3-axis magnetometer  | I2C, AUX | BOSCH  | `Datasheet <https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmm150-ds001.pdf>`__ |     |
-+--------+----------------------+----------+--------+----------------------------------------------------------------------------------------------------------------+-----+
++--------+---------------------+----------+--------+---------------------+-----+
+| Name   | Function            | Bus      | Vendor | Datasheet           | HAL |
++========+=====================+==========+========+=====================+=====+
+| BMM150 | 3-axis magnetometer | I2C, AUX | BOSCH  | `BMM150 Datasheet`_ |     |
++--------+---------------------+----------+--------+---------------------+-----+
+| BMM350 | 3-axis magnetometer | I2C      | BOSCH  | `BMM350 Datasheet`_ |     |
++--------+---------------------+----------+--------+---------------------+-----+
+
+.. _BMM150 Datasheet: https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmm150-ds001.pdf
+.. _BMM350 Datasheet: https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmm350-ds001.pdf

@@ -119,6 +119,7 @@ jobs:
             components/sensors/power_measure;
             components/sensors/gas/bme690;
             components/sensors/magnetometer/bmm150;
+            components/sensors/magnetometer/bmm350;
             components/sensors/gesture/apds9960;
             components/sensors/humiture/aht20;
             components/sensors/humiture/hdc2010;

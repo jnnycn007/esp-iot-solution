@@ -139,6 +139,10 @@ components/sensors/magnetometer/bmm150/test_apps:
   enable:
     - if: INCLUDE_DEFAULT == 1
 
+components/sensors/magnetometer/bmm350/test_apps:
+  enable:
+    - if: INCLUDE_DEFAULT == 1
+
 components/sensors/radar/at581x/test_apps:
   enable:
     - if: INCLUDE_DEFAULT == 1
