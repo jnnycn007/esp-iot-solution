@@ -36,7 +36,8 @@ repos:
             .*.patch|
             .*.base64|
             components/sensors/gas/bme690/(bme69x_defs\.h|bme69x\.h|bme69x\.c|LICENSE)|
-            components/sensors/magnetometer/bmm150/(bmm150_defs\.h|bmm150\.h|bmm150\.c|LICENSE)
+            components/sensors/magnetometer/bmm150/(bmm150_defs\.h|bmm150\.h|bmm150\.c|LICENSE)|
+            components/sensors/magnetometer/bmm350/(bmm350_defs\.h|bmm350\.h|bmm350\.c|bmm350_oor\.h|bmm350_oor\.c|LICENSE)
           )$
       - id: end-of-file-fixer
         exclude: *whitespace_excludes
@@ -48,7 +49,8 @@ repos:
           (?x)^(
             .*.patch|
             components/sensors/gas/bme690/(bme69x_defs\.h|bme69x\.h|bme69x\.c|LICENSE)|
-            components/sensors/magnetometer/bmm150/(bmm150_defs\.h|bmm150\.h|bmm150\.c|LICENSE)
+            components/sensors/magnetometer/bmm150/(bmm150_defs\.h|bmm150\.h|bmm150\.c|LICENSE)|
+            components/sensors/magnetometer/bmm350/(bmm350_defs\.h|bmm350\.h|bmm350\.c|bmm350_oor\.h|bmm350_oor\.c|LICENSE)
           )$
       - id: double-quote-string-fixer
       - id: no-commit-to-branch
@@ -105,5 +107,6 @@ repos:
           .*.patch|
           components/sensors/gas/bme690/(bme69x_defs\.h|bme69x\.h|bme69x\.c|LICENSE)|
           components/sensors/magnetometer/bmm150/(bmm150_defs\.h|bmm150\.h|bmm150\.c|LICENSE)|
+          components/sensors/magnetometer/bmm350/(bmm350_defs\.h|bmm350\.h|bmm350\.c|bmm350_oor\.h|bmm350_oor\.c|LICENSE)|
           components/quickjs-ng/quickjs-ng/.*
         )$
