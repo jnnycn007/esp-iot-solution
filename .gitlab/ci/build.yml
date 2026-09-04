@@ -113,6 +113,12 @@
       - IMAGE: espressif/idf:release-v6.1
       - IMAGE: espressif/idf:latest
 
+.build_idf_ge_than_v6_1:
+  parallel:
+    matrix:
+      - IMAGE: espressif/idf:release-v6.1
+      - IMAGE: espressif/idf:latest
+
 .build_idf_active_release_version_with_pre_release:
   parallel:
     matrix:
@@ -288,6 +294,22 @@ build_example_bluetooth_ble_otp_server:
     - .build_idf_active_release_version
   variables:
     EXAMPLE_DIR: examples/bluetooth/ble_profiles/ble_otp/ble_otp_server
+
+build_example_bluetooth_ble_esl_tag:
+  extends:
+    - .build_examples_template
+    - .rules:build:example_bluetooth_ble_esl_tag
+    - .build_idf_ge_than_v6_1
+  variables:
+    EXAMPLE_DIR: examples/bluetooth/ble_profiles/ble_esl/ble_esl_tag
+
+build_example_bluetooth_ble_esl_ap:
+  extends:
+    - .build_examples_template
+    - .rules:build:example_bluetooth_ble_esl_ap
+    - .build_idf_ge_than_v6_1
+  variables:
+    EXAMPLE_DIR: examples/bluetooth/ble_profiles/ble_esl/ble_esl_ap
 
 build_example_bluetooth_ble_services_ble_ans:
   extends:

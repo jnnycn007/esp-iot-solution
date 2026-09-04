@@ -1,5 +1,26 @@
 # ChangeLog
 
+## v1.3.0 - 2026.09.02
+
+### Enhancements:
+
+- PAwR (`BLE_CONN_MGR_PERIODIC_ADV_WITH_RESP`, chip-gated by `SOC_BLE_PERIODIC_ADV_WITH_RESPONSE`):
+  - APIs: `esp_ble_conn_pawr_params_set()`, `esp_ble_conn_pawr_subev_data_set()`,
+    `esp_ble_conn_pawr_sync_subev()`, `esp_ble_conn_pawr_response_data_set()`
+  - Events: `ESP_BLE_CONN_EVENT_PER_SUBEV_DATA_REQ`, `ESP_BLE_CONN_EVENT_PER_SUBEV_RESP`
+  - Extended `esp_ble_conn_periodic_sync_t` / `esp_ble_conn_periodic_report_t` with PAwR fields
+  - `esp_ble_conn_pawr_subev_data_set()` transfers mbuf ownership to NimBLE
+- PAST (`BLE_CONN_MGR_PERIODIC_SYNC_TRANSFER`):
+  - APIs: `esp_ble_conn_periodic_sync_set_info()`, `esp_ble_conn_periodic_sync_transfer()`,
+    `esp_ble_conn_periodic_sync_receive()`
+  - Event: `ESP_BLE_CONN_EVENT_PERIODIC_TRANSFER`
+- Explicit periodic sync helpers (when Periodic Sync and/or PAST is enabled):
+  `esp_ble_conn_periodic_sync_create()`, `esp_ble_conn_periodic_sync_terminate()`,
+  `esp_ble_conn_periodic_sync_reporting()`
+- Add `esp_ble_conn_get_sec_state()` to query link encrypted / authenticated / bonded state
+- `esp_ble_conn_set_pairing_allowed(false)` rejects new pairing; `esp_ble_conn_security_initiate()` still allows LTK restore
+- Empty characteristic writes are delivered to `uuid_fn` callbacks
+
 ## v1.2.2 - 2026-08-26
 
 ### Bug Fixes:
@@ -17,7 +38,6 @@
 
 - Post `ESP_BLE_CONN_EVENT_STARTED` when the NimBLE host syncs and the stack is ready (after address resolution and advertising/scanning have begun), so applications can react without polling `ble_hs_synced()`.
 - Add `esp_ble_conn_whitelist_sync_bonds()` to rebuild the controller whitelist from bonded peers (`ble_store_util_bonded_peers` → `ble_gap_wl_set`), for bonded-only advertising/scanning with `filter_policy = ESP_BLE_CONN_SCAN_FILT_USE_WL`. Call after a bond is added or removed; RPA resolution remains handled by NimBLE privacy (`CONFIG_BT_NIMBLE_HS_PVCY`).
-
 
 ## v1.2.0 - 2026-05-12
 
