@@ -23,6 +23,26 @@ Related Example:
 - :example:`display/gui/lvgl_multi_screen`
 - :example:`display/gui/lvgl_mono_demo`
 
+.. _ESP Display Present:
+
+ESP Display Present
+-------------------
+
+``esp_display_present`` sends renderer pixels to an ``esp_lcd`` panel. The
+application owns the panel and the presenter. LVGL 9, GSP, or a custom GUI
+take exclusive producer turns. It is not a second LVGL adapter.
+
+``esp_lv_present`` only installs the LVGL 9 flush path on an existing presenter.
+
+Component Links:
+
+- https://components.espressif.com/components/espressif/esp_display_present
+- https://components.espressif.com/components/espressif/esp_lv_present
+
+Related Example:
+
+- :example:`display/gui/lvgl_present_benchmark`
+
 .. _ESP LVGL EAF Player:
 
 ESP LVGL EAF Player

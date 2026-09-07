@@ -23,6 +23,25 @@ ESP LVGL Adapter 是面向 ESP-IDF 的统一 LVGL 适配层，兼容 LVGL v8/v9�
 - :example:`display/gui/lvgl_multi_screen`
 - :example:`display/gui/lvgl_mono_demo`
 
+.. _ESP Display Present:
+
+ESP Display Present
+-------------------------
+
+``esp_display_present`` 把渲染器像素送到 ``esp_lcd`` 面板。应用持有面板和
+Presenter，LVGL 9、GSP 或自绘 GUI 轮流独占生产。它不是第二套 LVGL 适配层。
+
+``esp_lv_present`` 只在已有 Presenter 上安装 LVGL 9 的 flush 路径。
+
+组件链接：
+
+- https://components.espressif.com/components/espressif/esp_display_present
+- https://components.espressif.com/components/espressif/esp_lv_present
+
+相关示例：
+
+- :example:`display/gui/lvgl_present_benchmark`
+
 .. _ESP LVGL EAF Player:
 
 ESP LVGL EAF Player
