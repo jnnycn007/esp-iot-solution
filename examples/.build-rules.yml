@@ -255,6 +255,14 @@ examples/display/lcd/rgb_avoid_tearing:
   enable:
     - if: IDF_TARGET in ["esp32s3"]
 
+examples/display/gui/lvgl_present_benchmark:
+  enable:
+    - if: IDF_TARGET in ["esp32s3", "esp32s31", "esp32p4", "esp32c3"] and IDF_VERSION_MAJOR == 6
+
+examples/display/gui/gsp_lvgl_present_handoff:
+  enable:
+    - if: IDF_TARGET in ["esp32s3", "esp32s31", "esp32p4", "esp32c3"] and IDF_VERSION_MAJOR == 6
+
 examples/display/gui/lvgl_common_demo:
   enable:
     - if: IDF_TARGET in ["esp32s3","esp32p4","esp32c3"] and (IDF_VERSION_MAJOR == 5 and IDF_VERSION_MINOR == 5)

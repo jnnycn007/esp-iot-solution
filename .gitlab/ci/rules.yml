@@ -195,6 +195,14 @@
 .patterns-components_display_lcd_touch_esp_lcd_touch_st77926: &patterns-components_display_lcd_touch_esp_lcd_touch_st77926
   - "components/display/lcd_touch/esp_lcd_touch_st77926/**/*"
 
+.patterns-components_display_tools_esp_display_present: &patterns-components_display_tools_esp_display_present
+  - "components/display/tools/esp_display_present/**/*"
+  - "tools/cmake_utilities/package_manager.cmake"
+
+.patterns-components_display_tools_esp_lv_present: &patterns-components_display_tools_esp_lv_present
+  - "components/display/tools/esp_lv_present/**/*"
+  - "tools/cmake_utilities/package_manager.cmake"
+
 .patterns-components_display_tools_esp_lv_decoder: &patterns-components_display_tools_esp_lv_decoder
   - "components/display/tools/esp_lv_decoder/**/*"
   - "tools/cmake_utilities/package_manager.cmake"
@@ -554,6 +562,8 @@
   - "components/openai/include/OpenAI.h"
 
 .patterns-docs_inc_2: &patterns-docs_inc_2
+  - "components/display/tools/esp_display_present/include/*.h"
+  - "components/display/tools/esp_lv_present/include/*.h"
   - "components/protocomm_ext/include/common/protocomm_ext.h"
   - "components/protocomm_ext/include/security/protocomm_ext_security.h"
   - "components/protocomm_ext/include/transports/protocomm_ext_console.h"
@@ -700,6 +710,14 @@
 
 .patterns-example_display_lcd_rgb_avoid_tearing: &patterns-example_display_lcd_rgb_avoid_tearing
   - "examples/display/lcd/rgb_avoid_tearing/**/*"
+
+.patterns-example_display_gui_lvgl_present_benchmark: &patterns-example_display_gui_lvgl_present_benchmark
+  - "examples/display/gui/lvgl_present_benchmark/**/*"
+  - "examples/display/gui/common/hw_init/**/*"
+
+.patterns-example_display_gui_gsp_lvgl_present_handoff: &patterns-example_display_gui_gsp_lvgl_present_handoff
+  - "examples/display/gui/gsp_lvgl_present_handoff/**/*"
+  - "examples/display/gui/common/hw_init/**/*"
 
 .patterns-example_display_gui_lvgl_common_demo: &patterns-example_display_gui_lvgl_common_demo
   - "examples/display/gui/lvgl_common_demo/**/*"
@@ -1431,6 +1449,34 @@
       changes: *patterns-components_display_lcd_esp_lcd_panel_io_additions
     - <<: *if-dev-push
       changes: *patterns-example_display_lcd_rgb_avoid_tearing
+
+.rules:build:example_display_gui_lvgl_present_benchmark:
+  rules:
+    - <<: *if-protected
+    - <<: *if-label-build
+    - <<: *if-trigger-job
+    - <<: *if-dev-push
+      changes: *patterns-build_system
+    - <<: *if-dev-push
+      changes: *patterns-example_display_gui_lvgl_present_benchmark
+    - <<: *if-dev-push
+      changes: *patterns-components_display_tools_esp_display_present
+    - <<: *if-dev-push
+      changes: *patterns-components_display_tools_esp_lv_present
+
+.rules:build:example_display_gui_gsp_lvgl_present_handoff:
+  rules:
+    - <<: *if-protected
+    - <<: *if-label-build
+    - <<: *if-trigger-job
+    - <<: *if-dev-push
+      changes: *patterns-build_system
+    - <<: *if-dev-push
+      changes: *patterns-example_display_gui_gsp_lvgl_present_handoff
+    - <<: *if-dev-push
+      changes: *patterns-components_display_tools_esp_display_present
+    - <<: *if-dev-push
+      changes: *patterns-components_display_tools_esp_lv_present
 
 .rules:build:example_display_gui_lvgl_common_demo:
   rules:
@@ -3022,6 +3068,30 @@
       allow_failure: true # allow failure to avoid blocking the pipeline in manual trigger
       variables:
         MANUAL_TRIGGER_ESP_LVGL_ADAPTER_BENCHMARK: "true"
+
+.rules:build:components_display_tools_esp_display_present_test_apps:
+  rules:
+    - <<: *if-protected
+    - <<: *if-label-build
+    - <<: *if-label-target_test
+    - <<: *if-trigger-job
+    - <<: *if-dev-push
+      changes: *patterns-build_system
+    - <<: *if-dev-push
+      changes: *patterns-components_display_tools_esp_display_present
+
+.rules:build:components_display_tools_esp_lv_present_test_apps:
+  rules:
+    - <<: *if-protected
+    - <<: *if-label-build
+    - <<: *if-label-target_test
+    - <<: *if-trigger-job
+    - <<: *if-dev-push
+      changes: *patterns-build_system
+    - <<: *if-dev-push
+      changes: *patterns-components_display_tools_esp_lv_present
+    - <<: *if-dev-push
+      changes: *patterns-components_display_tools_esp_display_present
 
 .rules:build:components_display_tools_esp_mmap_assets_test_apps:
   rules:

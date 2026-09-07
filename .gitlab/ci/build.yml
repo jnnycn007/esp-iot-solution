@@ -554,6 +554,33 @@ build_example_display_gui_lvgl_dummy_draw:
   variables:
     EXAMPLE_DIR: examples/display/gui/lvgl_dummy_draw
 
+build_example_display_gui_lvgl_present_benchmark:
+  extends:
+    - .build_examples_template
+    - .rules:build:example_display_gui_lvgl_present_benchmark
+  parallel:
+    matrix:
+      - IMAGE: espressif/idf:release-v6.0
+      - IMAGE: espressif/idf:release-v6.1
+      - IMAGE: espressif/idf:latest
+  variables:
+    EXAMPLE_DIR: examples/display/gui/lvgl_present_benchmark
+
+build_example_display_gui_gsp_lvgl_present_handoff:
+  extends:
+    - .build_examples_template
+    - .rules:build:example_display_gui_gsp_lvgl_present_handoff
+  parallel:
+    matrix:
+      - IMAGE: espressif/idf:release-v6.0
+      - IMAGE: espressif/idf:release-v6.1
+      - IMAGE: espressif/idf:latest
+  variables:
+    EXAMPLE_DIR: examples/display/gui/gsp_lvgl_present_handoff
+    EXAMPLE_PYTHON_DEPS: esp-gsp-tools
+    # GSPC archives live on Espressif CDN, not GitHub.
+    GSP_TOOLS_BASE_URL: "https://dl.espressif.com/AE/gsp/"
+
 build_example_display_gui_lvgl_common_demo:
   extends:
     - .build_examples_template
@@ -1487,6 +1514,30 @@ build_components_display_tools_esp_lvgl_adapter_rgb888_benchmark:
     - .build_components_display_tools_esp_lvgl_adapter_benchmark_template
   variables:
     EXAMPLE_CONFIG: "sdkconfig.ci.rgb888=default"
+
+build_components_display_tools_esp_display_present_test_apps:
+  extends:
+    - .build_examples_template
+    - .rules:build:components_display_tools_esp_display_present_test_apps
+  parallel:
+    matrix:
+      - IMAGE: espressif/idf:release-v6.0
+      - IMAGE: espressif/idf:release-v6.1
+      - IMAGE: espressif/idf:latest
+  variables:
+    EXAMPLE_DIR: components/display/tools/esp_display_present/test_apps
+
+build_components_display_tools_esp_lv_present_test_apps:
+  extends:
+    - .build_examples_template
+    - .rules:build:components_display_tools_esp_lv_present_test_apps
+  parallel:
+    matrix:
+      - IMAGE: espressif/idf:release-v6.0
+      - IMAGE: espressif/idf:release-v6.1
+      - IMAGE: espressif/idf:latest
+  variables:
+    EXAMPLE_DIR: components/display/tools/esp_lv_present/test_apps
 
 build_components_display_tools_esp_mmap_assets_test_apps:
   extends:
