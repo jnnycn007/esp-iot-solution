@@ -330,6 +330,11 @@ esp_err_t display_lcd_blit_area(esp_lcd_panel_handle_t panel,
                                 int y_end,
                                 const void *frame_buffer);
 
+/* Copy incompatible DMA2D windows through the CPU before submitting a MIPI framebuffer. */
+esp_err_t display_lcd_blit_mipi_partial(esp_lcd_panel_handle_t panel,
+                                        const esp_lv_adapter_display_runtime_info_t *runtime,
+                                        const lv_area_t *area, const void *pixels);
+
 /**
  * @brief Acquire next available frame buffer for double/triple buffering
  *
@@ -552,29 +557,29 @@ esp_err_t display_bridge_resume_hw_resource_after_sleep(void);
 bool display_bridge_flash_encryption_active(void);
 
 /**
- * @brief Get the alignment required by DMA to encrypted external memory
+ * @brief Get the maximum DMA alignment required by external memory
  *
  * @return Alignment in bytes
  */
 size_t display_bridge_dma2d_ext_mem_alignment(void);
 
 /**
- * @brief Whether DMA to this buffer needs encryption alignment handling
+ * @brief Whether DMA to this buffer needs strict external-memory alignment
  *
- * Returns true only when flash encryption is enabled and the buffer resides in
- * encrypted external RAM. Internal RAM and carve-out no-encryption PSRAM do not
- * need the extra alignment handling.
+ * Uses the IDF MSPI constraints when available, including encryption and PSRAM
+ * ECC. Internal RAM is unrestricted; encryption-exempt PSRAM still requires
+ * alignment when ECC is enabled.
  *
  * @param buffer Buffer pointer
- * @return true if encrypted external-memory DMA alignment is required
+ * @return true if strict external-memory DMA alignment is required
  */
 bool display_bridge_dma2d_buffer_needs_alignment(const void *buffer);
 
 /**
  * @brief Whether X-axis rounding alone can make DMA2D accesses safe for this picture
  *
- * Returns true when stride bytes are already aligned to the encryption granule
- * AND the buffer requires encryption alignment handling. In this case X-axis
+ * Returns true when stride bytes satisfy the MSPI alignment and the buffer
+ * requires strict alignment handling. In this case X-axis
  * (offset and width) rounding is sufficient; Y does not need adjustment.
  *
  * @param buffer     Picture base pointer
@@ -587,7 +592,7 @@ bool display_bridge_dma2d_x_rounding_sufficient(const void *buffer,
                                                 uint8_t color_bytes);
 
 /**
- * @brief Whether a DMA2D window satisfies encrypted external-memory alignment
+ * @brief Whether a DMA2D window satisfies external-memory alignment
  *
  * @param buffer       Picture base pointer
  * @param stride_px    Picture stride in pixels
@@ -603,10 +608,10 @@ bool display_bridge_dma2d_window_is_compatible(const void *buffer,
                                                uint8_t color_bytes);
 
 /**
- * @brief Expand an LVGL invalidated area so DMA to encrypted external RAM stays aligned
+ * @brief Expand an LVGL invalidated area so external-memory DMA stays aligned
  *
  * Rounds x1 down and x2 up so the per-row byte offset and length are multiples
- * of the external-memory encryption granule for the given color depth. Y is not
+ * of the external-memory alignment for the given color depth. Y is not
  * adjusted because row-start alignment depends on stride bytes, not row index.
  *
  * @param area     Invalidated area, expanded in place

@@ -16,6 +16,9 @@
 
 #include "esp_cache.h"
 #include "esp_private/esp_cache_private.h"
+#if __has_include("esp_private/esp_mspi_align.h")
+#include "esp_private/esp_mspi_align.h"
+#endif
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 1)
 #include "esp_efuse.h"
 #else
@@ -83,7 +86,7 @@ void display_bridge_te_bounce_alloc(display_bridge_te_bounce_t *bounce,
 }
 
 /**********************
- *  FLASH ENC DMA ALIGN
+ *  EXTERNAL MEMORY DMA ALIGN
  **********************/
 
 #if defined(SOC_GDMA_EXT_MEM_ENC_ALIGNMENT)
@@ -107,16 +110,10 @@ bool display_bridge_flash_encryption_active(void)
 
 size_t display_bridge_dma2d_ext_mem_alignment(void)
 {
-    return DISPLAY_BRIDGE_ENC_DMA_ALIGN;
-}
-
-static bool display_bridge_psram_is_no_enc(const void *buffer)
-{
-#if CONFIG_SPIRAM_ENC_EXEMPT
-    return buffer && esp_psram_ptr_is_no_enc(buffer);
+#if __has_include("esp_private/esp_mspi_align.h")
+    return esp_mspi_get_alignment(NULL);
 #else
-    (void)buffer;
-    return false;
+    return DISPLAY_BRIDGE_ENC_DMA_ALIGN;
 #endif
 }
 
@@ -139,15 +136,26 @@ static size_t display_bridge_dma2d_align_pixels(uint8_t color_bytes)
 
 bool display_bridge_dma2d_buffer_needs_alignment(const void *buffer)
 {
-    if (!buffer || !display_bridge_flash_encryption_active()) {
+    if (!buffer) {
         return false;
     }
-
+#if __has_include("esp_private/esp_mspi_align.h")
+    return esp_mspi_get_alignment(buffer) > 1;
+#else
     if (!esp_ptr_external_ram(buffer)) {
         return false;
     }
-
-    return !display_bridge_psram_is_no_enc(buffer);
+#if CONFIG_SPIRAM_ECC_ENABLE
+    return true;
+#else
+#if CONFIG_SPIRAM_ENC_EXEMPT
+    if (esp_psram_ptr_is_no_enc(buffer)) {
+        return false;
+    }
+#endif
+    return display_bridge_flash_encryption_active();
+#endif
+#endif
 }
 
 bool display_bridge_dma2d_x_rounding_sufficient(const void *buffer,
@@ -611,6 +619,32 @@ esp_err_t display_lcd_blit_area(esp_lcd_panel_handle_t panel,
                                      x_end,
                                      y_end,
                                      frame_buffer);
+}
+
+esp_err_t display_lcd_blit_mipi_partial(esp_lcd_panel_handle_t panel,
+                                        const esp_lv_adapter_display_runtime_info_t *runtime,
+                                        const lv_area_t *area, const void *pixels)
+{
+    void *fb = runtime->frame_buffers[0];
+    size_t width = lv_area_get_width(area);
+    size_t height = lv_area_get_height(area);
+    size_t row_bytes = width * runtime->color_bytes;
+    size_t stride = (size_t)runtime->hor_res * runtime->color_bytes;
+
+    if (fb && (!display_bridge_dma2d_window_is_compatible(pixels, width, 0, width, runtime->color_bytes) ||
+               !display_bridge_dma2d_window_is_compatible(fb, runtime->hor_res, area->x1,
+                                                          width, runtime->color_bytes))) {
+        const uint8_t *src = pixels;
+        uint8_t *dst = (uint8_t *)fb + (size_t)area->y1 * stride + (size_t)area->x1 * runtime->color_bytes;
+        for (size_t y = 0; y < height; y++) {
+            memcpy(dst, src, row_bytes);
+            src += row_bytes;
+            dst += stride;
+        }
+        /* Passing the panel framebuffer bypasses its copy hook and writes back cache. */
+        pixels = fb;
+    }
+    return esp_lcd_panel_draw_bitmap(panel, area->x1, area->y1, area->x2 + 1, area->y2 + 1, pixels);
 }
 
 /**

@@ -3,6 +3,7 @@
 ## v0.7.0 (2026-08-14)
 
 * Add a high-performance TE pipeline to improve rendering and display transfer efficiency while retaining TE synchronization.
+* Fix LVGL v8/v9 rotation with flash encryption or PSRAM ECC enabled.
 * Fix TE transfer error handling and ISR logging.
 
 ## v0.6.4 (2026-08-12)

@@ -1754,10 +1754,9 @@ static void rounder_cb_wrapper(lv_disp_drv_t *drv, lv_area_t *area)
     if (impl->cfg.rounder_cb) {
         impl->cfg.rounder_cb(area, impl->cfg.rounder_user_data);
     }
-    /* Align area for encrypted external-RAM DMA. Checks source (draw_buf_primary)
-     * and dest (draw_fb, stride-aligned only — unaligned stride falls back to CPU copy). */
+    /* Align source and panel framebuffer windows when stride permits. */
     if (display_bridge_dma2d_buffer_needs_alignment(impl->cfg.draw_buf_primary) ||
-            display_bridge_dma2d_x_rounding_sufficient(impl->draw_fb, drv->hor_res, color_bytes)) {
+            display_bridge_dma2d_x_rounding_sufficient(impl->draw_fb ? impl->draw_fb : impl->runtime.frame_buffers[0], drv->hor_res, color_bytes)) {
         display_bridge_align_area_for_enc_dma(area, drv->hor_res, color_bytes);
     }
 }
@@ -1783,7 +1782,7 @@ static void display_bridge_v8_set_area_rounder(esp_lv_adapter_display_bridge_t *
          * enable DMA and the flush path already falls back to CPU copy. */
         const bool need_dma2d_rounder =
             display_bridge_dma2d_buffer_needs_alignment(impl->cfg.draw_buf_primary) ||
-            display_bridge_dma2d_x_rounding_sufficient(impl->draw_fb,
+            display_bridge_dma2d_x_rounding_sufficient(impl->draw_fb ? impl->draw_fb : impl->runtime.frame_buffers[0],
                                                        bridge_h_res(impl),
                                                        bridge_color_bytes(impl));
         drv->rounder_cb = (rounder_cb || need_dma2d_rounder)
@@ -2477,7 +2476,9 @@ static void display_bridge_v8_flush_default(esp_lv_adapter_display_bridge_v8_t *
             display_manager_flush_ready(drv);
         }
     } else {
-        esp_err_t ret = esp_lcd_panel_draw_bitmap(panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, color_map);
+        esp_err_t ret = impl->cfg.base.profile.interface == ESP_LV_ADAPTER_PANEL_IF_MIPI_DSI ?
+                        display_lcd_blit_mipi_partial(panel_handle, &impl->runtime, area, color_map) :
+                        esp_lcd_panel_draw_bitmap(panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, color_map);
         if (ret != ESP_OK) {
             ESP_LOGE(TAG, "Draw bitmap failed: %s", esp_err_to_name(ret));
             /* Callback won't be triggered on failure, must notify LVGL immediately */
@@ -2909,13 +2910,8 @@ static void display_bridge_v8_flush_partial_rotate(esp_lv_adapter_display_bridge
             return;
         }
 
-#if CONFIG_SOC_PPA_SUPPORTED
-        if (!hw_resource.ppa_handle) {
-            display_cache_msync_framebuffer(impl->draw_fb, impl->runtime.frame_buffer_size);
-        }
-#else
+        /* Rotation and diff repair may write through the CPU even with a PPA client. */
         display_cache_msync_framebuffer(impl->draw_fb, impl->runtime.frame_buffer_size);
-#endif
 #if SOC_DMA2D_SUPPORTED || CONFIG_SOC_PPA_SUPPORTED
         display_cache_msync_invalidate_framebuffer(impl->draw_fb, impl->runtime.frame_buffer_size);
 #endif
@@ -2968,7 +2964,10 @@ static void IRAM_ATTR rotate_copy_strided_region(const void *src, void *dst_fb,
     uint8_t color_bytes = bridge_color_bytes(impl);
 
 #if CONFIG_SOC_PPA_SUPPORTED
-    if (hw_resource.ppa_handle && (color_bytes == COLOR_BYTES_RGB565 || color_bytes == COLOR_BYTES_RGB888)) {
+    /* SRM macro-block accesses cannot satisfy strict external-memory alignment. */
+    if (hw_resource.ppa_handle && (color_bytes == COLOR_BYTES_RGB565 || color_bytes == COLOR_BYTES_RGB888) &&
+            !display_bridge_dma2d_buffer_needs_alignment(src) &&
+            !display_bridge_dma2d_buffer_needs_alignment(dst_fb)) {
         const size_t rect_w = lv_x_end - lv_x_start + 1;
         const size_t rect_h = lv_y_end - lv_y_start + 1;
 
@@ -3067,7 +3066,10 @@ static void IRAM_ATTR rotate_copy_region(esp_lv_adapter_display_bridge_v8_t *imp
                                          uint8_t color_bytes)
 {
 #if CONFIG_SOC_PPA_SUPPORTED
-    if (hw_resource.ppa_handle && (color_bytes == COLOR_BYTES_RGB565 || color_bytes == COLOR_BYTES_RGB888)) {
+    /* SRM macro-block accesses cannot satisfy strict external-memory alignment. */
+    if (hw_resource.ppa_handle && (color_bytes == COLOR_BYTES_RGB565 || color_bytes == COLOR_BYTES_RGB888) &&
+            !display_bridge_dma2d_buffer_needs_alignment(from) &&
+            !display_bridge_dma2d_buffer_needs_alignment(to)) {
         ppa_srm_rotation_angle_t ppa_rotation;
         int x_offset = 0, y_offset = 0;
         const uint16_t rect_w = x_end - x_start + 1;
@@ -3134,7 +3136,9 @@ static void IRAM_ATTR rotate_copy_region(esp_lv_adapter_display_bridge_v8_t *imp
     }
 #endif
 
-    display_rotate_copy_region(from,
+    const uint8_t *src = (const uint8_t *)from +
+                         ((size_t)y_start * src_logical_w + x_start) * color_bytes;
+    display_rotate_copy_region(src,
                                to,
                                x_start,
                                y_start,
