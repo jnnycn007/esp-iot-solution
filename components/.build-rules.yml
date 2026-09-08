@@ -89,7 +89,7 @@ components/i2c_bus/test_apps:
 
 components/ir/ir_learn/test_apps:
   enable:
-    - if: INCLUDE_DEFAULT == 1
+    - if: IDF_TARGET in ["esp32s3"]
 
 components/knob/test_apps:
   enable:
