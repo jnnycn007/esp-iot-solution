@@ -86,6 +86,14 @@ typedef enum {
 #define ESP_LV_ADAPTER_TE_BOUNCE_BUFFER_ROWS_DEFAULT 16  /*!< Default async TE bounce buffer height */
 
 /**
+ * @brief TE rendering and transfer pipeline
+ */
+typedef enum {
+    ESP_LV_ADAPTER_TE_PIPELINE_SYNC_FULL = 0, /*!< Wait for TE and transfer a full LVGL frame synchronously */
+    ESP_LV_ADAPTER_TE_PIPELINE_ASYNC_FULL,    /*!< Merge dirty rendering into a staging frame and transfer it fully after TE */
+} esp_lv_adapter_te_pipeline_t;
+
+/**
  * @brief TE (Tearing Effect) synchronization configuration
  *
  * This structure configures GPIO-based TE synchronization for SPI/I2C/I80 panels.
@@ -107,11 +115,6 @@ typedef enum {
  *       Custom panel drivers must notify completion only after the entire draw call.
  *       Draw errors drain the configured panel IO; custom drivers must use that IO.
  */
-typedef enum {
-    ESP_LV_ADAPTER_TE_PIPELINE_SYNC_FULL = 0, /*!< Wait for TE and transfer a full LVGL frame synchronously */
-    ESP_LV_ADAPTER_TE_PIPELINE_ASYNC_FULL,    /*!< Merge dirty rendering into a staging frame and transfer it fully after TE */
-} esp_lv_adapter_te_pipeline_t;
-
 typedef struct {
     int gpio_num;                   /*!< TE GPIO number (-1 to disable) */
     uint32_t time_tvdl_ms;          /*!< Panel refresh window (Tvdl), 0 for default (13ms) */
