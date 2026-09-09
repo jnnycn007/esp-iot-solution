@@ -177,13 +177,7 @@ static void ppa_blend(lv_color_t *bg_buf, const lv_area_t *bg_area, const lv_col
     uint16_t fg_off_x = block_area->x1 - fg_area->x1;
     uint16_t fg_off_y = block_area->y1 - fg_area->y1;
 
-    if ((uint32_t)fg_off_x + block_w > fg_w) {
-        fg_w = fg_off_x + block_w;
-    }
-    if ((uint32_t)fg_off_y + block_h > fg_h) {
-        fg_h = fg_off_y + block_h;
-    }
-    size_t out_buffer_size = ppa_get_aligned_buffer_size(bg_buf, sizeof(lv_color_t) * bg_w * bg_h);
+    size_t out_buffer_size = ppa_get_aligned_buffer_size(bg_buf, (size_t)2 * bg_w * bg_h);
 
     ppa_blend_oper_config_t cfg = {
         .in_bg = {
@@ -233,7 +227,7 @@ static void ppa_fill(lv_color_t *bg_buf, const lv_area_t *bg_area, const lv_area
 {
     uint16_t bg_w = lv_area_get_width(bg_area);
     uint16_t bg_h = lv_area_get_height(bg_area);
-    size_t out_buffer_size = ppa_get_aligned_buffer_size(bg_buf, sizeof(lv_color_t) * bg_w * bg_h);
+    size_t out_buffer_size = ppa_get_aligned_buffer_size(bg_buf, (size_t)2 * bg_w * bg_h);
 
     lv_color32_t c32 = lv_color_to_32(color, LV_OPA_COVER);
     uint32_t argb = ((uint32_t)c32.alpha << 24) | ((uint32_t)c32.red << 16) |
@@ -375,7 +369,11 @@ static void lv_draw_ppa_v9_handler(lv_draw_task_t *t, const lv_draw_sw_blend_dsc
     }
 
     lv_color_t *bg_buf = (lv_color_t *)layer->draw_buf->data;
-    if (!bg_buf || !ppa_buffer_cache_aligned(bg_buf)) {
+    if (!bg_buf || !ppa_buffer_cache_aligned(bg_buf) ||
+            layer->draw_buf->header.stride != (uint32_t)lv_area_get_width(&layer->buf_area) * 2 ||
+            !display_bridge_dma2d_window_is_compatible(bg_buf, lv_area_get_width(&layer->buf_area),
+                                                       block_area.x1 - layer->buf_area.x1,
+                                                       lv_area_get_width(&block_area), 2)) {
         lv_draw_ppa_v9_sw_fallback(t, dsc);
         return;
     }
@@ -407,7 +405,12 @@ static void lv_draw_ppa_v9_handler(lv_draw_task_t *t, const lv_draw_sw_blend_dsc
 
         lv_coord_t src_off_x = block_area.x1 - src_area->x1;
         lv_coord_t src_off_y = block_area.y1 - src_area->y1;
-        if (src_off_x < 0 || src_off_y < 0) {
+        if (src_off_x < 0 || src_off_y < 0 ||
+                (size_t)src_off_x + lv_area_get_width(&block_area) > src_stride / src_px_size ||
+                src_off_y + lv_area_get_height(&block_area) > lv_area_get_height(src_area) ||
+                !display_bridge_dma2d_window_is_compatible(dsc->src_buf, src_stride / src_px_size,
+                                                           src_off_x, lv_area_get_width(&block_area),
+                                                           src_px_size)) {
             lv_draw_ppa_v9_sw_fallback(t, dsc);
             return;
         }
@@ -592,7 +595,11 @@ static void lv_draw_ppa_v9_handler_rgb888(lv_draw_task_t *t, const lv_draw_sw_bl
     }
 
     uint8_t *bg_buf = (uint8_t *)layer->draw_buf->data;
-    if (!bg_buf || !ppa_buffer_cache_aligned(bg_buf)) {
+    if (!bg_buf || !ppa_buffer_cache_aligned(bg_buf) ||
+            layer->draw_buf->header.stride != (uint32_t)lv_area_get_width(&layer->buf_area) * 3 ||
+            !display_bridge_dma2d_window_is_compatible(bg_buf, lv_area_get_width(&layer->buf_area),
+                                                       block_area.x1 - layer->buf_area.x1,
+                                                       lv_area_get_width(&block_area), 3)) {
         lv_draw_ppa_v9_sw_fallback_rgb888(t, dsc);
         return;
     }
@@ -635,6 +642,12 @@ static void lv_draw_ppa_v9_handler_rgb888(lv_draw_task_t *t, const lv_draw_sw_bl
         if (dsc->src_color_format == LV_COLOR_FORMAT_ARGB8888) {
             uint32_t src_stride_bytes = dsc->src_stride ? dsc->src_stride : (img_w * 4);
             uint32_t src_stride_px = src_stride_bytes / 4;
+            if (src_stride_bytes % 4 != 0 || off_x + block_w > src_stride_px ||
+                    !display_bridge_dma2d_window_is_compatible(dsc->src_buf, src_stride_px,
+                                                               off_x, block_w, 4)) {
+                lv_draw_ppa_v9_sw_fallback_rgb888(t, dsc);
+                return;
+            }
 
             /* Write back only the block rows PPA will read (not the whole image). */
             const uint8_t *src_start = (const uint8_t *)dsc->src_buf + (size_t)off_y * src_stride_bytes;

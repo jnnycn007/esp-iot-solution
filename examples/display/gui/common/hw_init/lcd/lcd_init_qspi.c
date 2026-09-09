@@ -241,6 +241,10 @@ esp_err_t hw_lcd_init(esp_lcd_panel_handle_t *panel_handle, esp_lcd_panel_io_han
         .data1_io_num = HW_LCD_DATA1,
         .data2_io_num = HW_LCD_DATA2,
         .data3_io_num = HW_LCD_DATA3,
+        .data4_io_num = GPIO_NUM_NC,
+        .data5_io_num = GPIO_NUM_NC,
+        .data6_io_num = GPIO_NUM_NC,
+        .data7_io_num = GPIO_NUM_NC,
         .max_transfer_sz = HW_LCD_MAX_TRANSFER_SZ,
         .flags = SPICOMMON_BUSFLAG_QUAD,
     };
